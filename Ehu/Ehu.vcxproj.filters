@@ -27,12 +27,18 @@
     <ClInclude Include="src\Ehu\EntryPoint.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="src\Ehu\Log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\bin\Debug-x64\Ehu\Ehu.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Ehu\Application.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ehu\Log.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

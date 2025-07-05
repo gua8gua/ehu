@@ -1,0 +1,3 @@
+[submodule "Ehu/vendor/spdlog"]
+	path = Ehu/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git

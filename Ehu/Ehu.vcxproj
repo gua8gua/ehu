@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Ehu\Log.h" />
     <ClInclude Include="src\Ehu.h" />
     <ClInclude Include="src\Ehu\Application.h" />
     <ClInclude Include="src\Ehu\Core.h" />
@@ -28,6 +29,7 @@
     <None Include="..\bin\Debug-x64\Ehu\Ehu.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Ehu\Log.cpp" />
     <ClCompile Include="src\Ehu\Application.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -124,6 +126,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>EHU_PLATFORM_WINDOWS;EHU_BUILD_DLL;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)Ehu\vendor\spdlog\include;</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,6 +142,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>EHU_PLATFORM_WINDOWS;EHU_BUILD_DLL;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)Ehu\vendor\spdlog\include;</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
