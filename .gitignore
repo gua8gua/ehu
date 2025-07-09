@@ -1,5 +1,5 @@
 .vs/
-bin/
-bin-int/
+build/
+install/
 *.user
 *.sln
