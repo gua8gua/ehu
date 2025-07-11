@@ -11,10 +11,15 @@ file(GLOB EHU_SOURCES
     "src/*.h"
     "src/Ehu/*.cpp"
     "src/Ehu/*.h"
+    "src/Ehu/Events/*.cpp"
+    "src/Ehu/Events/*.h"
 )
 
-message(STATUS "EHU_SOURCES = ${EHU_SOURCES}")
+# 创建共享库
 add_library(Ehu SHARED ${EHU_SOURCES})
+
+# 设置预编译头
+target_precompile_headers(Ehu PUBLIC "src/Ehu/ehupch.h")
 
 # 包含目录
 target_include_directories(Ehu PRIVATE 
@@ -27,11 +32,6 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     add_definitions(-DEHU_PLATFORM_WINDOWS -DEHU_BUILD_DLL)
-
-    # 后期构建命令
-    #   add_custom_command(TARGET Ehu POST_BUILD
-    #   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Ehu> ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}-${CMAKE_SYSTEM_NAME}-${CMAKE_ARCHITECTURE}/SandBox
-    #   )
 endif()
 
 # 配置文件类型（Debug, Release, Dist）
