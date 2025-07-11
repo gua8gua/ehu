@@ -5,6 +5,7 @@ namespace Ehu
 {
 	Application::Application()
 	{
+		m_EventHandler = new EventHandler();
 	}
 
 	Application::~Application()
