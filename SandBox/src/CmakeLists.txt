@@ -1,0 +1,6 @@
+set(SRC_MAIN
+    SandApp.cpp
+)
+
+# 将文件添加到库中
+target_sources(SandBox PRIVATE ${SRC_MAIN})

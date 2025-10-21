@@ -1,6 +1,6 @@
 #pragma once
 #include "Core.h"
-#include "Events/EventHandler.h"
+#include "EventHandler.h"
 
 namespace Ehu
 {

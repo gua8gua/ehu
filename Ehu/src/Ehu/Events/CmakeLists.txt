@@ -1,0 +1,10 @@
+
+set(SRC_EHU_EVENTS
+    ApplicationEvent.h
+    Event.h
+    KeyEvent.h
+    MouseEvent.h
+)
+
+target_sources(EhuLib PRIVATE ${SRC_EHU_EVENTS})
+source_group("Events" FILES ${SRC_EHU_EVENTS})

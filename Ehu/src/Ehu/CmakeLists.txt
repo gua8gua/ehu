@@ -1,0 +1,16 @@
+set(SRC_EHU
+    Application.cpp
+    Application.h
+    Core.h
+    ehupch.cpp
+    ehupch.h
+    EntryPoint.h
+    EventHandler.h
+    Log.cpp
+    Log.h
+)
+
+
+target_sources(EhuLib PRIVATE ${SRC_EHU})
+source_group("Ehu" FILES ${SRC_EHU})
+add_subdirectory(Events)

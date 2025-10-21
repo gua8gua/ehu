@@ -5,12 +5,11 @@ foreach(CONFIG_TYPE Debug Release Dist)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_DIR}/bin-int/${CONFIG_TYPE}")
 endforeach()
 
-file(GLOB SANDBOX_SOURCES
-    "src/*.cpp"
-    "src/*.h"
-)
+#创建执行程序
+add_executable(SandBox)
 
-add_executable(SandBox ${SANDBOX_SOURCES})
+# 添加子目录
+add_subdirectory(src)
 
 # 包含目录
 target_include_directories(SandBox PRIVATE
@@ -19,7 +18,7 @@ target_include_directories(SandBox PRIVATE
 )
 
 # 链接Ehu库
-target_link_libraries(SandBox PRIVATE Ehu)
+target_link_libraries(SandBox PRIVATE EhuLib)
 
 # Windows特定设置
 if(WIN32)

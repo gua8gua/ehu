@@ -5,28 +5,26 @@ foreach(CONFIG_TYPE Debug Release Dist)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_DIR}/bin-int/${CONFIG_TYPE}")
 endforeach()
 
-# 收集所有 .cpp 和 .h 文件
-file(GLOB EHU_SOURCES
-    "src/*.cpp"
-    "src/*.h"
-    "src/Ehu/*.cpp"
-    "src/Ehu/*.h"
-    "src/Ehu/Events/*.cpp"
-    "src/Ehu/Events/*.h"
-)
+# 创建库
+add_library(EhuLib SHARED)
 
-# 创建共享库
-add_library(Ehu SHARED ${EHU_SOURCES})
+# 添加子目录
+add_subdirectory(src)
+
 
 # 设置预编译头
-target_precompile_headers(Ehu PUBLIC "src/Ehu/ehupch.h")
+target_precompile_headers(EhuLib PUBLIC "src/Ehu/ehupch.h")
 
 # 包含目录
-target_include_directories(Ehu PRIVATE 
+target_include_directories(EhuLib PRIVATE 
     vendor/spdlog/include
+    vendor/glfw/include
 )
 
-# Windows特定设置
+add_subdirectory(vendor/glfw)  # 添加 GLFW 构建目录
+target_link_libraries(EhuLib PRIVATE glfw)
+
+# Windows设置
 if(WIN32)
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")

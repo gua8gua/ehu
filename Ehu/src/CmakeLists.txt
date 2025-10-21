@@ -1,0 +1,8 @@
+set(SRC_MAIN
+    Ehu.h
+)
+
+target_sources(EhuLib PRIVATE ${SRC_MAIN})
+source_group("src" FILES ${SRC_MAIN})
+add_subdirectory(Ehu)
+
