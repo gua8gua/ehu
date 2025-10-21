@@ -1,7 +1,7 @@
 #pragma once
-#include "../Core.h"
+#include "Core.h"
 
-#include <string>
+#include "ehupch.h"
 
 using namespace std;
 

@@ -1,8 +1,7 @@
 #pragma once
 #include "Events/Event.h"
 
-#include <functional>
-#include <unordered_map>
+#include <ehupch.h>
 
 namespace Ehu {
     class EventHandler {
