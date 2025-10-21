@@ -1,10 +1,9 @@
-
-set(SRC_EHU_EVENTS
-    ApplicationEvent.h
-    Event.h
-    KeyEvent.h
-    MouseEvent.h
-)
+file(GLOB SRC_EHU_EVENTS_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB SRC_EHU_EVENTS_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(SRC_EHU_EVENTS ${SRC_EHU_EVENTS_CPP} ${SRC_EHU_EVENTS_H})
 
 target_sources(EhuLib PRIVATE ${SRC_EHU_EVENTS})
-source_group("Events" FILES ${SRC_EHU_EVENTS})
+target_include_directories(EhuLib
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)

@@ -1,16 +1,13 @@
-set(SRC_EHU
-    Application.cpp
-    Application.h
-    Core.h
-    ehupch.cpp
-    ehupch.h
-    EntryPoint.h
-    EventHandler.h
-    Log.cpp
-    Log.h
-)
 
+file(GLOB SRC_EHU_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB SRC_EHU_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(SRC_EHU ${SRC_EHU_CPP} ${SRC_EHU_H})
 
 target_sources(EhuLib PRIVATE ${SRC_EHU})
-source_group("Ehu" FILES ${SRC_EHU})
+target_include_directories(EhuLib
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 add_subdirectory(Events)
+add_subdirectory(Platform)

@@ -1,6 +1,10 @@
-set(SRC_MAIN
-    SandApp.cpp
-)
+file(GLOB SRC_MAIN_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB SRC_MAIN_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(SRC_MAIN ${SRC_MAIN_CPP} ${SRC_MAIN_H})
 
 # 将文件添加到库中
 target_sources(SandBox PRIVATE ${SRC_MAIN})
+target_include_directories(EhuLib
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
