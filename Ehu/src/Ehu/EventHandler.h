@@ -1,7 +1,6 @@
 #pragma once
+#include "ehupch.h"
 #include "Events/Event.h"
-
-#include <ehupch.h>
 
 namespace Ehu {
     class EventHandler {

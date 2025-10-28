@@ -16,11 +16,13 @@ add_subdirectory(src)
 target_precompile_headers(EhuLib PUBLIC "src/Ehu/ehupch.h")
 
 # 包含目录
+# spdlog为头文件库
 target_include_directories(EhuLib PRIVATE 
     vendor/spdlog/include
     vendor/glfw/include
 )
 
+# 需要编译的第三方库
 add_subdirectory(vendor/glfw)  # 添加 GLFW 构建目录
 target_link_libraries(EhuLib PRIVATE glfw)
 

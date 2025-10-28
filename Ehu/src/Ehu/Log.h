@@ -1,5 +1,5 @@
 #pragma once
-#include <ehupch.cpp>
+#include "ehupch.h"
 #include "Core.h"
 #include "spdlog/spdlog.h"
 
