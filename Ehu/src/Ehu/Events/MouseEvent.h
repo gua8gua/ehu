@@ -4,7 +4,6 @@
 namespace Ehu {
     class EHU_API MouseEvent : public Event {
     public:
-        // Êó±êÊÂ¼þÀàÐÍ£¨À©Õ¹»ùÀàµÄ EventType£©
         enum class MouseAction {
             ButtonPressed, ButtonReleased, Moved, Scrolled
         };
@@ -38,12 +37,10 @@ namespace Ehu {
             m_Category = category;
         }
 
-        // MouseEvent ÌØÓÐ·½·¨
         float GetX() const { return m_X; }
         float GetY() const { return m_Y; }
-        int GetButton() const { return m_Button; }  // 0=×ó¼ü, 1=ÖÐ¼ü, 2=ÓÒ¼ü
+        int GetButton() const { return m_Button; }  // 0=ï¿½ï¿½ï¿½, 1=ï¿½Ð¼ï¿½, 2=ï¿½Ò¼ï¿½
 
-        // ¾²Ì¬·½·¨£º°´Å¥×ª×Ö·û´®£¨Èç 0 -> "Left"£©
         static std::string ButtonToString(int button) {
             switch (button) {
             case 0: return "Left";
@@ -54,7 +51,7 @@ namespace Ehu {
         }
 
     private:
-        float m_X, m_Y;     // Êó±ê×ø±ê£¨Ïà¶Ô´°¿Ú£©
-        int m_Button;       // ´¥·¢ÊÂ¼þµÄ°´Å¥£¨-1±íÊ¾ÎÞ°´Å¥£¬ÈçÒÆ¶¯ÊÂ¼þ£©
+        float m_X, m_Y;
+        int m_Button;
     };
 }

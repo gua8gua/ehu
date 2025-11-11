@@ -1,0 +1,9 @@
+file(GLOB SRC_EHU_Platform_Window_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB SRC_EHU_Platform_Window_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(SRC_EHU_Platform_Window ${SRC_EHU_Platform_Window_CPP} ${SRC_EHU_Platform_Window_H})
+
+target_sources(EhuLib PRIVATE ${SRC_EHU_Platform_Window})
+target_include_directories(EhuLib
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)

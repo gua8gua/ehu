@@ -1,11 +1,10 @@
 #pragma once
-#include "ehupch.h"
-#include "Core.h"
+#include "../ehupch.h"
+#include "../Core.h"
 
 using namespace std;
 
 namespace Ehu {
-	//事件类型枚举
 enum class EventType {
     None = 0,
     WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
@@ -16,11 +15,11 @@ enum class EventType {
 
 enum EventCategory {
     None = 0,
-    EventCategoryApplication = BIT(0),  // 应用事件（启动、更新、渲染）
-    EventCategoryInput = BIT(1),  // 所有输入事件
-    EventCategoryKeyboard = BIT(2),  // 键盘事件
-    EventCategoryMouse = BIT(3),  // 鼠标事件（通用）
-    EventCategoryMouseButton = BIT(4)   // 鼠标按键事件
+    EventCategoryApplication = BIT(0),
+    EventCategoryInput = BIT(1),
+    EventCategoryKeyboard = BIT(2),
+    EventCategoryMouse = BIT(3),
+    EventCategoryMouseButton = BIT(4)
 };
 
 class EHU_API Event {

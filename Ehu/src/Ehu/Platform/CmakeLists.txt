@@ -8,3 +8,5 @@ target_include_directories(EhuLib
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+add_subdirectory(Window)

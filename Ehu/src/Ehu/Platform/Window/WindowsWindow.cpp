@@ -27,6 +27,7 @@ namespace Ehu {
 
 		EHU_CORE_INFO("Creating window {0} ({1}, {2})", props.title, props.width, props.height);
 
+		// 初始化 GLFW
 		if (!s_GLFWInitialized)
 		{
 			int success = glfwInit();
@@ -34,6 +35,7 @@ namespace Ehu {
 			s_GLFWInitialized = true;
 		}	
 
+		// 创建 GLFW 窗口
 		m_Window = glfwCreateWindow((int)props.width, (int)props.height, m_Data.Title.c_str(), nullptr, nullptr);
 		glfwMakeContextCurrent(m_Window);
 		glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -47,6 +49,7 @@ namespace Ehu {
 
 	void WindowsWindow::OnUpdate()
 	{
+		// 处理事件和渲染
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
 	}

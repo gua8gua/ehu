@@ -11,6 +11,8 @@ namespace Ehu
 		Application();
 		virtual ~Application();
 		void Run();
+
+		void OnEvent(Event& e);
 	private:
 		EventHandler* m_EventHandler;
 		std::unique_ptr<Window> m_Window;

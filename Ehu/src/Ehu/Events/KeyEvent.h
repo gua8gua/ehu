@@ -4,7 +4,7 @@
 namespace Ehu {
     class EHU_API KeyEvent : public Event {
     public:
-        // 键盘事件类型
+
         enum class KeyAction { Pressed, Released, Typed };
 
         KeyEvent(KeyAction action, int keyCode, int modifiers = 0)
@@ -26,21 +26,21 @@ namespace Ehu {
                 );
         }
 
-        // KeyEvent 特有方法
+
         int GetKeyCode() const { return m_KeyCode; }
         int GetModifiers() const { return m_Modifiers; }
         bool IsModifierDown(int modifier) const { return m_Modifiers & modifier; }
 
-        // 静态方法：键码转字符串（如 VK_A -> "A"）
+
         static std::string KeyCodeToString(int keyCode) {
-            // 示例：实际实现需映射所有键码（参考 VK_ 常量）
+
             if (keyCode >= 'A' && keyCode <= 'Z') return std::string(1, (char)keyCode);
             if (keyCode >= '0' && keyCode <= '9') return std::string(1, (char)keyCode);
             return "Unknown";
         }
 
     private:
-        int m_KeyCode;      // 物理键码（如 VK_A）
-        int m_Modifiers;    // 修饰键掩码（Alt/Ctrl/Shift）
+        int m_KeyCode;
+        int m_Modifiers;
     };
 }
