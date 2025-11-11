@@ -31,8 +31,10 @@ class EHU_API Event {
 
         bool IsHandled() const { return handled; }
         void SetHandled(bool inHandled) { handled = inHandled; }
-        string GetNmae() const { return eventName; }
+        string GetName() const { return eventName; }
         void SetName(string name) { eventName = name; }
+
+        string ToString() const { return eventName; }
 
         inline bool IsInCategory(EventCategory category) const {
             return GetEventCategory() & category;
