@@ -22,28 +22,54 @@ enum EventCategory {
     EventCategoryMouseButton = BIT(4)
 };
 
-class EHU_API Event {
+#define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\
+virtual EventType GetEventType() const override { return GetStaticType(); }\
+virtual const char* GetName() const override { return #type; }
+
+#define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
+
+    class EHU_API Event {
     public:
-        virtual ~Event() = default; 
+        virtual ~Event() = default;
 
-        EventType GetEventType() const { return m_Type; }
-        EventCategory GetEventCategory() const { return m_Category; }
+        bool Handled = false;
 
-        bool IsHandled() const { return handled; }
-        void SetHandled(bool inHandled) { handled = inHandled; }
-        string GetName() const { return eventName; }
-        void SetName(string name) { eventName = name; }
+        virtual EventType GetEventType() const = 0;
+        virtual const char* GetName() const = 0;
+        virtual int GetCategoryFlags() const = 0;
+        virtual std::string ToString() const { return GetName(); }
 
-        string ToString() const { return eventName; }
-
-        inline bool IsInCategory(EventCategory category) const {
-            return GetEventCategory() & category;
+        bool IsInCategory(EventCategory category)
+        {
+            return GetCategoryFlags() & category;
         }
-    protected:
-        bool handled = 0;
-        string eventName;
+    };
 
-        EventType m_Type;
-        EventCategory m_Category;
-};
+    class EventDispatcher
+    {
+    public:
+        EventDispatcher(Event& event)
+            : m_Event(event)
+        {
+        }
+
+        // F will be deduced by the compiler
+        template<typename T, typename F>
+        bool Dispatch(const F& func)
+        {
+            if (m_Event.GetEventType() == T::GetStaticType())
+            {
+                m_Event.Handled |= func(static_cast<T&>(m_Event));
+                return true;
+            }
+            return false;
+        }
+    private:
+        Event& m_Event;
+    };
+
+    inline std::ostream& operator<<(std::ostream& os, const Event& e)
+    {
+        return os << e.ToString();
+    }
 }

@@ -1,46 +1,71 @@
 #pragma once
 #include "Event.h"
 
-namespace Ehu {
-    class EHU_API KeyEvent : public Event {
+namespace Hazel {
+
+    class KeyEvent : public Event
+    {
     public:
+        KeyCode GetKeyCode() const { return m_KeyCode; }
 
-        enum class KeyAction { Pressed, Released, Typed };
+        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
+    protected:
+        KeyEvent(const KeyCode keycode)
+            : m_KeyCode(keycode) {}
 
-        KeyEvent(KeyAction action, int keyCode, int modifiers = 0)
-            : m_KeyCode(keyCode), m_Modifiers(modifiers) {
-            switch (action) {
-            case KeyAction::Pressed:
-                m_Type = EventType::KeyPressed;
-                break;
-            case KeyAction::Released:
-                m_Type = EventType::KeyReleased;
-                break;
-            case KeyAction::Typed:
-                m_Type = EventType::KeyTyped;
-                break;
-            default: m_Type = EventType::None;
-            }
-            m_Category = static_cast<EventCategory>(
-                EventCategoryInput | EventCategoryKeyboard
-                );
+        KeyCode m_KeyCode;
+    };
+
+    class KeyPressedEvent : public KeyEvent
+    {
+    public:
+        KeyPressedEvent(const KeyCode keycode, bool isRepeat = false)
+            : KeyEvent(keycode), m_IsRepeat(isRepeat) {}
+
+        bool IsRepeat() const { return m_IsRepeat; }
+
+        std::string ToString() const override
+        {
+            std::stringstream ss;
+            ss << "KeyPressedEvent: " << m_KeyCode << " (repeat = " << m_IsRepeat << ")";
+            return ss.str();
         }
 
-
-        int GetKeyCode() const { return m_KeyCode; }
-        int GetModifiers() const { return m_Modifiers; }
-        bool IsModifierDown(int modifier) const { return m_Modifiers & modifier; }
-
-
-        static std::string KeyCodeToString(int keyCode) {
-
-            if (keyCode >= 'A' && keyCode <= 'Z') return std::string(1, (char)keyCode);
-            if (keyCode >= '0' && keyCode <= '9') return std::string(1, (char)keyCode);
-            return "Unknown";
-        }
-
+        EVENT_CLASS_TYPE(KeyPressed)
     private:
-        int m_KeyCode;
-        int m_Modifiers;
+        bool m_IsRepeat;
+    };
+
+    class KeyReleasedEvent : public KeyEvent
+    {
+    public:
+        KeyReleasedEvent(const KeyCode keycode)
+            : KeyEvent(keycode) {}
+
+        std::string ToString() const override
+        {
+            std::stringstream ss;
+            ss << "KeyReleasedEvent: " << m_KeyCode;
+            return ss.str();
+        }
+
+        EVENT_CLASS_TYPE(KeyReleased)
+    };
+
+    class KeyTypedEvent : public KeyEvent
+    {
+    public:
+        KeyTypedEvent(const KeyCode keycode)
+            : KeyEvent(keycode) {}
+
+        std::string ToString() const override
+        {
+            std::stringstream ss;
+            ss << "KeyTypedEvent: " << m_KeyCode;
+            return ss.str();
+        }
+
+        EVENT_CLASS_TYPE(KeyTyped)
     };
 }
+

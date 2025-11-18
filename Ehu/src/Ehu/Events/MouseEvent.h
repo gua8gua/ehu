@@ -1,57 +1,96 @@
 #pragma once
 #include "Event.h"
 
-namespace Ehu {
-    class EHU_API MouseEvent : public Event {
-    public:
-        enum class MouseAction {
-            ButtonPressed, ButtonReleased, Moved, Scrolled
-        };
+namespace Hazel {
 
-        MouseEvent(MouseAction action, float x, float y, int button = -1)
-            : m_X(x), m_Y(y), m_Button(button) {
-            switch (action) {
-            case MouseAction::ButtonPressed:
-                m_Type = EventType::MouseButtonPressed;
-                break;
-            case MouseAction::ButtonReleased:
-                m_Type = EventType::MouseButtonReleased;
-                break;
-            case MouseAction::Moved:
-                m_Type = EventType::MouseMoved;
-                break;
-            case MouseAction::Scrolled:
-                m_Type = EventType::MouseScrolled;
-                break;
-            default: m_Type = EventType::None;
-            }
+	class MouseMovedEvent : public Event
+	{
+	public:
+		MouseMovedEvent(const float x, const float y)
+			: m_MouseX(x), m_MouseY(y) {}
 
-            auto category = static_cast<EventCategory>(
-                EventCategoryInput | EventCategoryMouse
-                );
-            if (action == MouseAction::ButtonPressed ||
-                action == MouseAction::ButtonReleased) {
-                category = static_cast<EventCategory>(category | EventCategoryMouseButton);
-            }
+		float GetX() const { return m_MouseX; }
+		float GetY() const { return m_MouseY; }
 
-            m_Category = category;
-        }
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "MouseMovedEvent: " << m_MouseX << ", " << m_MouseY;
+			return ss.str();
+		}
 
-        float GetX() const { return m_X; }
-        float GetY() const { return m_Y; }
-        int GetButton() const { return m_Button; }  // 0=���, 1=�м�, 2=�Ҽ�
+		EVENT_CLASS_TYPE(MouseMoved)
+		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
+	private:
+		float m_MouseX, m_MouseY;
+	};
 
-        static std::string ButtonToString(int button) {
-            switch (button) {
-            case 0: return "Left";
-            case 1: return "Middle";
-            case 2: return "Right";
-            default: return "Unknown";
-            }
-        }
+	class MouseScrolledEvent : public Event
+	{
+	public:
+		MouseScrolledEvent(const float xOffset, const float yOffset)
+			: m_XOffset(xOffset), m_YOffset(yOffset) {}
 
-    private:
-        float m_X, m_Y;
-        int m_Button;
-    };
+		float GetXOffset() const { return m_XOffset; }
+		float GetYOffset() const { return m_YOffset; }
+
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "MouseScrolledEvent: " << GetXOffset() << ", " << GetYOffset();
+			return ss.str();
+		}
+
+		EVENT_CLASS_TYPE(MouseScrolled)
+		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
+	private:
+		float m_XOffset, m_YOffset;
+	};
+
+	class MouseButtonEvent : public Event
+	{
+	public:
+		MouseCode GetMouseButton() const { return m_Button; }
+
+		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput | EventCategoryMouseButton)
+	protected:
+		MouseButtonEvent(const MouseCode button)
+			: m_Button(button) {}
+
+		MouseCode m_Button;
+	};
+
+	class MouseButtonPressedEvent : public MouseButtonEvent
+	{
+	public:
+		MouseButtonPressedEvent(const MouseCode button)
+			: MouseButtonEvent(button) {}
+
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "MouseButtonPressedEvent: " << m_Button;
+			return ss.str();
+		}
+
+		EVENT_CLASS_TYPE(MouseButtonPressed)
+	};
+
+	class MouseButtonReleasedEvent : public MouseButtonEvent
+	{
+	public:
+		MouseButtonReleasedEvent(const MouseCode button)
+			: MouseButtonEvent(button) {}
+
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "MouseButtonReleasedEvent: " << m_Button;
+			return ss.str();
+		}
+
+		EVENT_CLASS_TYPE(MouseButtonReleased)
+	};
+
 }
+
