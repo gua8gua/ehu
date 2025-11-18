@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Hazel
+namespace Ehu
 {
 	typedef uint16_t KeyCode;
 	namespace Key

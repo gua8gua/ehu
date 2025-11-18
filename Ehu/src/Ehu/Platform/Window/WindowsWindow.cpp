@@ -1,6 +1,9 @@
 #include "WindowsWindow.h"
 #include "Ehu/Log.h"
 
+#include "Events/ApplicationEvent.h"
+
+
 namespace Ehu {
 	static bool s_GLFWInitialized = false;
 

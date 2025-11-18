@@ -1,7 +1,7 @@
 #pragma once
 #include "Event.h"
 
-namespace Hazel {
+namespace Ehu {
 
     class KeyEvent : public Event
     {
