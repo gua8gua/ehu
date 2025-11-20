@@ -36,6 +36,13 @@ namespace Ehu
 	}
 
 	void Application::OnEvent(Event& e) {
-		EHU_CORE_INFO("Event: {0}", e.ToString());
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClose));
+		EHU_CORE_TRACE("Event: {0}", e.ToString());
+	}
+
+	bool Application::OnWindowClose(WindowCloseEvent& e) {
+		m_Running = false;
+		return true;
 	}
 }

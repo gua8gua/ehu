@@ -20,11 +20,20 @@ target_include_directories(SandBox PRIVATE
 # 链接Ehu库
 target_link_libraries(SandBox PRIVATE EhuLib)
 
-# Windows特定设置
+# Windows设置
 if(WIN32)
-    add_definitions(-DEHU_PLATFORM_WINDOWS)
     set(CMAKE_CXX_STANDARD 17)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    add_definitions(-DEHU_PLATFORM_WINDOWS -DEHU_BUILD_DLL)
+
+    # 区分 MSVC 与 MinGW / Clang
+    if (MSVC)
+        message(STATUS "Compiler: MSVC, enabling /utf-8")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+    else()
+        message(STATUS "Compiler: MinGW or Clang, enabling UTF-8 charset")
+        add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+    endif()
 endif()
 
 # 配置文件类型（Debug, Release, Dist）

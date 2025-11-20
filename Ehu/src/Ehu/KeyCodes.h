@@ -1,8 +1,9 @@
 #pragma once
+#include "ehupch.h"
 
 namespace Ehu
 {
-	typedef uint16_t KeyCode;
+	using KeyCode = uint16_t;
 	namespace Key
 	{
 		enum : KeyCode

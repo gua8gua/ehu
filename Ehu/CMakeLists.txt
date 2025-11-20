@@ -6,7 +6,8 @@ foreach(CONFIG_TYPE Debug Release Dist)
 endforeach()
 
 # 创建库
-add_library(EhuLib SHARED)
+add_library(EhuLib SHARED
+        src/Ehu/MouseCodes.h)
 
 # 添加子目录
 add_subdirectory(src)
