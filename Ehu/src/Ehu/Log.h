@@ -21,9 +21,9 @@ namespace Ehu {
 #define EHU_CORE_INFO(...)		::Ehu::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define EHU_CORE_TRACE(...)		::Ehu::Log::GetCoreLogger()->trace(__VA_ARGS__)
 
-#define EHU__ERROR(...)			::Ehu::Log::GetClientLogger()->error(__VA_ARGS__)
-#define EHU__WARN(...)			::Ehu::Log::GetClientLogger()->warn(__VA_ARGS__)
-#define EHU__INFO(...)			::Ehu::Log::GetClientLogger()->info(__VA_ARGS__)	
-#define EHU__TRACE(...)			::Ehu::Log::GetClientLogger()->trace(__VA_ARGS__)
+#define EHU_ERROR(...)			::Ehu::Log::GetClientLogger()->error(__VA_ARGS__)
+#define EHU_WARN(...)			::Ehu::Log::GetClientLogger()->warn(__VA_ARGS__)
+#define EHU_INFO(...)			::Ehu::Log::GetClientLogger()->info(__VA_ARGS__)
+#define EHU_TRACE(...)			::Ehu::Log::GetClientLogger()->trace(__VA_ARGS__)
 
 

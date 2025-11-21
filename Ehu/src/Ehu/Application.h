@@ -1,11 +1,10 @@
 #pragma once
 #include "Core.h"
-#include "EventHandler.h"
 #include "Window.h"
-
-#include "KeyEvent.h"
-#include "MouseEvent.h"
-#include "ApplicationEvent.h"
+#include "LayerStack.h"
+#include "Events/KeyEvent.h"
+#include "Events/MouseEvent.h"
+#include "Events/ApplicationEvent.h"
 
 namespace Ehu
 {
@@ -17,10 +16,13 @@ namespace Ehu
 		void Run();
 
 		void OnEvent(Event& e);
+
+		void PushLayer(Layer* layer);
+		void PushOverLayer(Layer* layer);
 	private:
 		bool OnWindowClose(WindowCloseEvent &event);
 
-		EventHandler* m_EventHandler;
+		LayerStack m_LayerStack;
 		std::unique_ptr<Window> m_Window;
 		bool m_Running;
 	};

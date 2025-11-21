@@ -6,8 +6,7 @@ foreach(CONFIG_TYPE Debug Release Dist)
 endforeach()
 
 # 创建库
-add_library(EhuLib SHARED
-        src/Ehu/MouseCodes.h)
+add_library(EhuLib SHARED)
 
 # 添加子目录
 add_subdirectory(src)
@@ -20,15 +19,25 @@ target_precompile_headers(EhuLib PUBLIC "src/Ehu/ehupch.h")
 # spdlog为头文件库
 target_include_directories(EhuLib PRIVATE 
     vendor/spdlog/include
-    vendor/glfw/include
+    vendor/GLFW/include
+    vendor/GLAD/include
 )
+
+# 添加 OpenGL
 find_package(OpenGL REQUIRED)
-
-
-# 需要编译的第三方库
-add_subdirectory(vendor/glfw)  # 添加 GLFW 构建目录
-target_link_libraries(EhuLib PRIVATE glfw)
 target_link_libraries(EhuLib PRIVATE OpenGL::GL)
+
+# 添加 GLFW，内部有cmake直接加
+add_subdirectory(vendor/GLFW)
+target_link_libraries(EhuLib PRIVATE glfw)
+
+# 添加 GLAD，无cmake手动打包
+add_library(glad STATIC vendor/GLAD/src/glad.c)
+target_include_directories(glad PUBLIC
+        vendor/GLAD/include)
+target_link_libraries(EhuLib PRIVATE glad)
+
+
 
 # Windows设置
 if(WIN32)

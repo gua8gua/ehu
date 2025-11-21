@@ -1,6 +1,6 @@
 #pragma once
 #include "Event.h"
-#include "./KeyCodes.h"
+#include "../KeyCodes.h"
 
 namespace Ehu {
 
