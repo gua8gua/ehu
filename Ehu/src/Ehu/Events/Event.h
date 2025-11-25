@@ -1,6 +1,6 @@
 #pragma once
-#include "../ehupch.h"
-#include "../Core.h"
+#include "Ehu/ehupch.h"
+#include "Ehu/Core.h"
 
 using namespace std;
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "Event.h"
-#include "../MouseCodes.h"
+#include "Ehu/MouseCodes.h"
 
 namespace Ehu {
 

@@ -21,6 +21,7 @@ target_include_directories(EhuLib PRIVATE
     vendor/spdlog/include
     vendor/GLFW/include
     vendor/GLAD/include
+    vendor/imgui
 )
 
 # 添加 OpenGL
@@ -37,7 +38,9 @@ target_include_directories(glad PUBLIC
         vendor/GLAD/include)
 target_link_libraries(EhuLib PRIVATE glad)
 
-
+# 添加 ImGui
+add_subdirectory(vendor/imgui)
+target_link_libraries(EhuLib PRIVATE ImGui)  # 链接 ImGui 库
 
 # Windows设置
 if(WIN32)
