@@ -11,3 +11,4 @@ target_include_directories(EhuLib
 
 add_subdirectory(Events)
 add_subdirectory(Platform)
+add_subdirectory(ImGui)

@@ -17,6 +17,7 @@ class SandApp : public Ehu::Application {
 	public:
 		SandApp() {
 			PushLayer(new ExampleLayer());
+			PushOverLayer(new Ehu::ImGuiLayer());
 		}	
 		~SandApp() {
 		}

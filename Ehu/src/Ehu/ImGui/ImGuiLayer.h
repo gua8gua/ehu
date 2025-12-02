@@ -8,7 +8,7 @@
 
 namespace Ehu {
 
-	class ImGuiLayer : public Layer
+	class EHU_API ImGuiLayer : public Layer
 	{
 	public:
 		ImGuiLayer();
@@ -16,7 +16,9 @@ namespace Ehu {
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
+		virtual void OnUpdate() override;
 		virtual void OnEvent(Event& e) override;
+
 
 		void Begin();
 		void End();
@@ -28,6 +30,7 @@ namespace Ehu {
 		uint32_t GetActiveWidgetID() const;
 	private:
 		bool m_BlockEvents = true;
+		float m_Time = 0.0f;
 	};
 
 }

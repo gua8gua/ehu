@@ -10,3 +10,4 @@ target_include_directories(EhuLib
 )
 
 add_subdirectory(Window)
+add_subdirectory(OpenGL)
