@@ -29,6 +29,16 @@ namespace Ehu {
 
 		uint32_t GetActiveWidgetID() const;
 	private:
+		bool OnMouseButtonPressed(MouseButtonPressedEvent &e);
+		bool OnMouseButtonReleased(MouseButtonReleasedEvent &e);
+		bool OnMouseMoved(MouseMovedEvent &e);
+		bool OnMouseScrolled(MouseScrolledEvent &e);
+		bool OnKeyPressed(KeyPressedEvent &e);
+		bool OnKeyReleased(KeyReleasedEvent &e);
+		bool OnKeyTyped(KeyTypedEvent &e);
+		bool OnWindowResized(WindowResizeEvent &e);
+
+	private:
 		bool m_BlockEvents = true;
 		float m_Time = 0.0f;
 	};

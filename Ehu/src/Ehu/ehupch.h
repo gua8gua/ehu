@@ -14,3 +14,5 @@
 #ifdef EHU_PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif 
+
+#define EHU_BIND_EVENT_FN(fn) std::bind(&fn,this, std::placeholders::_1)

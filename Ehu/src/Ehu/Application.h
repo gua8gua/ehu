@@ -27,7 +27,7 @@ namespace Ehu
 
 		LayerStack m_LayerStack;
 		std::unique_ptr<Window> m_Window;
-		bool m_Running;
+		bool m_Running = true;
 	private:
 		static Application* s_Instance;
 	};
