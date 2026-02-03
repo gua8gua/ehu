@@ -1,6 +1,6 @@
 #pragma once
 #include "ehupch.h"
-#include "../../Window.h"
+#include "Ehu/Window.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -20,6 +20,7 @@ namespace Ehu {
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
+		virtual void* GetNativeWindow() const { return m_Window; };
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();

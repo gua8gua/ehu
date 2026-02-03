@@ -5,3 +5,6 @@
 #include "Ehu/Log.h"
 #include "Ehu/Layer.h"
 #include "Ehu/ImGui/ImGuiLayer.h"
+#include "Ehu/Input.h"
+#include "Ehu/MouseCodes.h"
+#include "Ehu/KeyCodes.h"

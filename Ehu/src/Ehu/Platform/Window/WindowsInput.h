@@ -1,13 +1,15 @@
-//
-// Created by Administrator on 2026/2/1.
-//
+#pragma once
+#include "ehupch.h"
+#include "KeyCodes.h"
+#include "Ehu/Input.h"
 
-#ifndef GITMODULES_WINDOWSINPUT_H
-#define GITMODULES_WINDOWSINPUT_H
-
-
-class WindowsInput {
-};
-
-
-#endif //GITMODULES_WINDOWSINPUT_H
+namespace Ehu {
+    class WindowsInput : public Input {
+    protected:
+         bool IsKeyPressedImpl(const KeyCode& key) override;
+         bool IsMouseButtonPressedImpl(const MouseCode& button)override;
+         std::pair<float,float> GetMousePositionImpl()override;
+         float GetMouseXImpl()override;
+         float GetMouseYImpl()override;
+    };
+}

@@ -3,6 +3,9 @@
 #include "Log.h"
 #include "GLFW/glfw3.h"
 
+#include "Ehu/Input.h"
+
+
 namespace Ehu
 {
 
@@ -14,6 +17,9 @@ namespace Ehu
 		s_Instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(EHU_BIND_EVENT_FN(Application::OnEvent));
+
+		m_ImGuiLayer = new ImGuiLayer();
+		PushLayer(m_ImGuiLayer);
 	}
 
 	Application::~Application()
@@ -22,14 +28,6 @@ namespace Ehu
 
 	void Application::Run()
 	{
-		//WindowResizeEvent resizeEvent(1280, 720);
-		//if (resizeEvent.IsInCategory(EventCategoryApplication)) {
-		//	EHU_TRACE("Resize event received!");
-		//}
-		//if (resizeEvent.IsInCategory(EventCategoryInput)) {
-		//	EHU_TRACE("Input event received!");
-		//}
-
 		while (m_Running) {
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -37,6 +35,11 @@ namespace Ehu
 				layer->OnUpdate();
 			}
 
+			m_ImGuiLayer->Begin();
+			for (Layer *layer : m_LayerStack ) {
+				layer->OnImGuiRender();
+			}
+			m_ImGuiLayer->End();
 			m_Window->OnUpdate();
 		}
 	}
@@ -44,7 +47,7 @@ namespace Ehu
 	void Application::OnEvent(Event& e) {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(EHU_BIND_EVENT_FN(Application::OnWindowClose));
-		EHU_CORE_TRACE("Event: {0}", e.ToString());
+		//EHU_CORE_TRACE("Event: {0}", e.ToString());
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(e);

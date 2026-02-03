@@ -1,3 +1,4 @@
+# 设置构建输出文件
 foreach(CONFIG_TYPE Debug Release Dist)
     string(TOUPPER "${CONFIG_TYPE}" CONFIG_UPPER)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_DIR}/bin/${CONFIG_TYPE}")
@@ -41,6 +42,10 @@ target_link_libraries(EhuLib PRIVATE glad)
 # 添加 ImGui
 add_subdirectory(vendor/imgui)
 target_link_libraries(EhuLib PRIVATE ImGui)  # 链接 ImGui 库
+
+# 添加glm
+add_subdirectory(vendor/glm)
+target_link_libraries(EhuLib PUBLIC glm)
 
 # Windows设置
 if(WIN32)

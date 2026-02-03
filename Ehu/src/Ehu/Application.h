@@ -5,6 +5,7 @@
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
 #include "Events/ApplicationEvent.h"
+#include "Ehu/ImGui/ImGuiLayer.h"
 
 namespace Ehu
 {
@@ -22,11 +23,13 @@ namespace Ehu
 
 		static  Application& Get(){return *s_Instance;}
 		inline Window& GetWindow(){return *m_Window;}
+
 	private:
 		bool OnWindowClose(WindowCloseEvent &event);
 
 		LayerStack m_LayerStack;
 		std::unique_ptr<Window> m_Window;
+		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 	private:
 		static Application* s_Instance;
