@@ -11,10 +11,11 @@ add_executable(SandBox)
 # 添加子目录
 add_subdirectory(src)
 
-# 包含目录
+# 包含目录：Ehu/src 用于 Ehu/Ehu.h，Ehu/src/Ehu 用于 Ehu.h；spdlog 供 Ehu 头文件链使用
 target_include_directories(SandBox PRIVATE
-    ../Ehu/vendor/spdlog/include
-    ../Ehu/src
+    ${CMAKE_SOURCE_DIR}/Ehu/vendor/spdlog/include
+    ${CMAKE_SOURCE_DIR}/Ehu/src
+    ${CMAKE_SOURCE_DIR}/Ehu/src/Ehu
 )
 
 # 链接Ehu库
@@ -39,7 +40,9 @@ endif()
 # 配置文件类型（Debug, Release, Dist）
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DEHU_DEBUG)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    if(NOT MSVC)
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    endif()
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DEHU_RELEASE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")

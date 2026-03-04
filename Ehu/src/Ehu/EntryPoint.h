@@ -1,7 +1,8 @@
 #pragma once
+
 #ifdef EHU_PLATFORM_WINDOWS
-#include "Log.h"
-#include "Application.h"
+#include "Core/Log.h"
+#include "Core/Application.h"
 
 extern Ehu::Application* Ehu::CreateApplication();
 

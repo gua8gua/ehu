@@ -1,0 +1,52 @@
+{
+	"configurations": [
+		{
+			"name": "Win32",
+			"compileCommands": "${workspaceFolder}/build-ninja/compile_commands.json",
+			"includePath": [
+				"${workspaceFolder}/Ehu/src",
+				"${workspaceFolder}/Ehu/src/Ehu",
+				"${workspaceFolder}/Ehu/src/Ehu/Core",
+				"${workspaceFolder}/Ehu/src/Ehu/Events",
+				"${workspaceFolder}/Ehu/src/Ehu/Platform",
+				"${workspaceFolder}/Ehu/src/Ehu/ImGui",
+				"${workspaceFolder}/Ehu/src/Ehu/Backends/OpenGL_GLFW",
+				"${workspaceFolder}/Ehu/vendor/spdlog/include",
+				"${workspaceFolder}/Ehu/vendor/GLFW/include",
+				"${workspaceFolder}/Ehu/vendor/GLAD/include",
+				"${workspaceFolder}/Ehu/vendor/imgui",
+				"${workspaceFolder}/SandBox/src",
+				"${workspaceFolder}/Ehu/vendor/imgui/backends",
+				"${workspaceFolder}/Ehu/vendor/glm"
+			],
+			"defines": [
+				"_DEBUG",
+				"EHU_DEBUG",
+				"UNICODE",
+				"_UNICODE",
+				"EHU_PLATFORM_WINDOWS",
+				"EHU_BUILD_DLL",
+				"EHU_STATIC"
+			],
+			"windowsSdkVersion": "10.0.26100.0",
+			"compilerPath": "D:/ProgramFiles/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+			"cStandard": "c17",
+			"cppStandard": "c++17",
+			"intelliSenseMode": "windows-msvc-x64",
+			"browse": {
+				"path": [
+					"${workspaceFolder}/Ehu/src/Ehu/**",
+					"${workspaceFolder}/Ehu/src/**",
+					"${workspaceFolder}/Ehu/vendor/spdlog/include/**",
+					"${workspaceFolder}/Ehu/vendor/GLFW/include/**",
+					"${workspaceFolder}/Ehu/vendor/GLAD/include/**",
+					"${workspaceFolder}/Ehu/vendor/imgui/**",
+					"${workspaceFolder}/Ehu/vendor/glm/**",
+					"${workspaceFolder}/SandBox/src/**"
+				],
+				"limitSymbolsToIncludedHeaders": false
+			}
+		}
+	],
+	"version": 4
+}

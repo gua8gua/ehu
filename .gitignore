@@ -1,6 +1,37 @@
-.vs/
+# 构建与安装
 build/
+build-ninja/
 install/
+out/
+
+# IDE 与编辑器
+.vs/
 .idea/
 *.user
+*.suo
 *.sln
+*.vcxproj*
+*.vcxproj.filters
+
+# 编译产物与工具
+*.exe
+*.dll
+*.lib
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+.ipch/
+*.aps
+compile_commands.json
+
+# clangd 缓存（可选，若希望提交 compile_commands 可保留忽略缓存）
+.cache/
+
+# 系统与临时
+Thumbs.db
+*.swp
+*.swo
+*~
+.DS_Store

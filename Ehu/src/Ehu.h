@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Ehu/Application.h"
-#include "Ehu/EntryPoint.h"
-#include "Ehu/Log.h"
-#include "Ehu/Layer.h"
-#include "Ehu/ImGui/ImGuiLayer.h"
-#include "Ehu/Input.h"
-#include "Ehu/MouseCodes.h"
-#include "Ehu/KeyCodes.h"
+#include "Core/Application.h"
+#include "EntryPoint.h"
+#include "Core/Log.h"
+#include "Core/Layer.h"
+#include "ImGui/ImGuiLayer.h"
+#include "Platform/Input.h"
+#include "Core/MouseCodes.h"
+#include "Core/KeyCodes.h"

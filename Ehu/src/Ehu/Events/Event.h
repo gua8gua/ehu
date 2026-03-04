@@ -1,8 +1,7 @@
 #pragma once
-#include "Ehu/ehupch.h"
-#include "Ehu/Core.h"
 
-using namespace std;
+#include "ehupch.h"
+#include "Core/Core.h"
 
 namespace Ehu {
 enum class EventType {

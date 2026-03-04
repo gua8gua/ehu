@@ -1,0 +1,64 @@
+#include "ehupch.h"
+#include "ImGuiBackendGLFWOpenGL.h"
+#include "Platform/Window.h"
+#include "Core/Application.h"
+#include "imgui.h"
+#include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
+namespace Ehu {
+
+	// 初始化 ImGui
+	void ImGuiBackendGLFWOpenGL::Init(Window* window) {
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		(void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+		ImGui::StyleColorsDark();
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
+		GLFWwindow* native = static_cast<GLFWwindow*>(window->GetNativeWindow());
+		ImGui_ImplGlfw_InitForOpenGL(native, true);
+		ImGui_ImplOpenGL3_Init("#version 410");
+	}
+
+	// 开始 ImGui 帧
+	void ImGuiBackendGLFWOpenGL::BeginFrame() {
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+	}
+
+	// 结束 ImGui 帧
+	void ImGuiBackendGLFWOpenGL::EndFrame(Window* window) {
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2((float)window->GetWidth(), (float)window->GetHeight());
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			GLFWwindow* backup = glfwGetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(backup);
+		}
+	}
+
+	// 关闭 ImGui
+	void ImGuiBackendGLFWOpenGL::Shutdown() {
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
+
+} // namespace Ehu

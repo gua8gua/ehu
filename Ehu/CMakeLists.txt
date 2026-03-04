@@ -7,7 +7,7 @@ foreach(CONFIG_TYPE Debug Release Dist)
 endforeach()
 
 # 创建库
-add_library(EhuLib SHARED)
+add_library(EhuLib STATIC)
 
 # 添加子目录
 add_subdirectory(src)
@@ -47,11 +47,13 @@ target_link_libraries(EhuLib PRIVATE ImGui)  # 链接 ImGui 库
 add_subdirectory(vendor/glm)
 target_link_libraries(EhuLib PUBLIC glm)
 
+add_definitions( -DEHU_BUILD_DLL -DEHU_STATIC)
+
 # Windows设置
 if(WIN32)
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    add_definitions(-DEHU_PLATFORM_WINDOWS -DEHU_BUILD_DLL)
+    add_definitions(-DEHU_PLATFORM_WINDOWS)
 
     # 区分 MSVC 与 MinGW / Clang
     if (MSVC)
@@ -66,7 +68,9 @@ endif()
 # 配置文件类型（Debug, Release, Dist）
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DEHU_DEBUG)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    if(NOT MSVC)
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    endif()
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DEHU_RELEASE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")

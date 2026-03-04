@@ -1,13 +1,31 @@
-
-file(GLOB SRC_EHU_Platform_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB SRC_EHU_Platform_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-set(SRC_EHU_Platform ${SRC_EHU_Platform_CPP} ${SRC_EHU_Platform_H})
-
-target_sources(EhuLib PRIVATE ${SRC_EHU_Platform})
-target_include_directories(EhuLib
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+# 平台抽象层：后端选择、窗口/输入/渲染 API 接口与工厂
+set(PLATFORM_SOURCES
+	GraphicsBackend.cpp
+	Window.cpp
+	Input.cpp
+	RendererAPI.cpp
+	VertexBuffer.cpp
+	IndexBuffer.cpp
+	Shader.cpp
+	VertexArray.cpp
+	Texture2D.cpp
+	Framebuffer.cpp
+	RenderContext.cpp
+	Pipeline.cpp
 )
-
-add_subdirectory(Window)
-add_subdirectory(OpenGL)
+set(PLATFORM_HEADERS
+	GraphicsBackend.h
+	Window.h
+	Input.h
+	RendererAPI.h
+	VertexBuffer.h
+	IndexBuffer.h
+	Shader.h
+	VertexArray.h
+	Texture2D.h
+	Framebuffer.h
+	RenderContext.h
+	Pipeline.h
+)
+target_sources(EhuLib PRIVATE ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
+target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

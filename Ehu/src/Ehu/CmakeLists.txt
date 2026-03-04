@@ -1,14 +1,10 @@
+# Ehu 库根：预编译头与各模块子目录
+target_sources(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ehupch.cpp)
+target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-file(GLOB SRC_EHU_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB SRC_EHU_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-set(SRC_EHU ${SRC_EHU_CPP} ${SRC_EHU_H})
-
-target_sources(EhuLib PRIVATE ${SRC_EHU})
-target_include_directories(EhuLib
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
+add_subdirectory(Core)
 add_subdirectory(Events)
 add_subdirectory(Platform)
+add_subdirectory(Renderer)
 add_subdirectory(ImGui)
+add_subdirectory(Backends)
