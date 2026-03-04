@@ -1,0 +1,12 @@
+---
+description: Ehu 引擎头文件约定
+globs: "**/*.h"
+alwaysApply: false
+---
+
+# Ehu 头文件约定
+
+- 与 [ehu-cpp-engine] 一致：类/成员/静态命名、`EHU_API`、事件宏 `EVENT_CLASS_TYPE` / `EVENT_CLASS_CATEGORY`。
+- 使用 `#pragma once` 作为 include guard。
+- 需要被 SandBox 或其它目标使用的类型/函数声明加上 `EHU_API`。
+- 新增事件类放在 `Events/` 下，继承 `Event` 并实现宏与类别。

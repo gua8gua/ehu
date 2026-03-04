@@ -1,0 +1,31 @@
+---
+description: Ehu 引擎项目上下文与约定，供 AI 理解项目用途与结构
+alwaysApply: true
+---
+
+# Ehu 引擎项目说明
+
+## 项目是什么
+
+Ehu 是一个 C++ 游戏引擎雏形：应用层 + 层栈 + 事件驱动，当前仅支持 Windows，使用 OpenGL + GLFW + ImGui。用户通过实现 `CreateApplication()` 并继承 `Application`、`Layer` 来写游戏或工具。
+
+## 关键路径与命名
+
+- **引擎库**：`Ehu/` 目录，静态库 `EhuLib`，命名空间 `Ehu`。
+- **入口**：`Ehu/src/Ehu/EntryPoint.h` 中的 `main()` 调用 `CreateApplication()->Run()`；`CreateApplication()` 由**用户工程**（如 SandBox）实现。
+- **平台实现**：在 `Ehu/src/Ehu/Platform/Window/` 下（如 `WindowsWindow`、`WindowsInput`），不要假设只有 GLFW，为后续多平台留接口。
+
+## 约定
+
+- 引擎头文件用 `EHU_API` 导出（静态构建时为空）；断言用 `EHU_ASSERT` / `EHU_CORE_ASSERT`；日志用 `EHU_CORE_*`（引擎）和 `EHU_*`（客户端）。
+- 新增功能时：优先在抽象层（如 `Window`、`Input`、`Event`）定义接口，再在 `Platform/` 下实现；新事件类型放在 `Events/` 并保持 `EVENT_CLASS_TYPE` / `EVENT_CLASS_CATEGORY` 风格。
+- 第三方依赖位于 `Ehu/vendor/`（GLFW、GLAD、imgui、glm、spdlog），修改时注意兼容上游或保留可替换性。
+
+## 文档
+
+- **docs/** 目录为统一文档入口：
+  - `docs/README.md`：项目说明、结构、构建、架构与使用。
+  - `docs/ARCHITECTURE.md`：模块依赖、事件流、层栈顺序、扩展建议。
+  - `docs/TODO.md`：待办清单（缺失模块、层级/命名问题、建议完成顺序）。
+
+在修改引擎核心或添加新系统时，请先参考 docs/ 下文档，并保持与现有分层、事件和命名一致。

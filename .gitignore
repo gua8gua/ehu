@@ -26,7 +26,7 @@ out/
 *.aps
 compile_commands.json
 
-# clangd 缓存（可选，若希望提交 compile_commands 可保留忽略缓存）
+# clangd 缓存
 .cache/
 
 # 系统与临时
