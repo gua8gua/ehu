@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Events/Event.h"
+#include "TimeStep.h"
 
 namespace Ehu {
 
@@ -11,7 +12,7 @@ namespace Ehu {
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(const TimeStep& timestep) { (void)timestep; }
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& event) {}
 

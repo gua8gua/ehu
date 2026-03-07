@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/Pipeline.h"
+#include "Platform/Render/Pipeline.h"
 
 namespace Ehu {
 

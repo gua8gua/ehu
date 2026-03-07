@@ -6,6 +6,37 @@
 
 namespace Ehu {
 
+	// 默认 2D/3D 着色器源码由底层持有，布局：location 0 = vec3 a_Position, location 1 = vec4 a_Color
+	static const char* s_DefaultVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec3 a_Position;
+		layout(location = 1) in vec4 a_Color;
+		uniform mat4 u_ViewProjection;
+		uniform mat4 u_Transform;
+		out vec4 v_Color;
+		void main() {
+			v_Color = a_Color;
+			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
+		}
+	)";
+	static const char* s_DefaultFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		uniform vec4 u_Color;
+		out vec4 FragColor;
+		void main() {
+			FragColor = v_Color * u_Color;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateDefault2D() {
+		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
+	}
+
+	Shader* OpenGLShader::CreateDefault3D() {
+		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
+	}
+
 	OpenGLShader::OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc) {
 		uint32_t vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
 		uint32_t fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);

@@ -1,31 +1,31 @@
 # 平台抽象层：后端选择、窗口/输入/渲染 API 接口与工厂
 set(PLATFORM_SOURCES
-	GraphicsBackend.cpp
-	Window.cpp
-	Input.cpp
-	RendererAPI.cpp
-	VertexBuffer.cpp
-	IndexBuffer.cpp
-	Shader.cpp
-	VertexArray.cpp
-	Texture2D.cpp
-	Framebuffer.cpp
-	RenderContext.cpp
-	Pipeline.cpp
+	Backend/GraphicsBackend.cpp
+	IO/Window.cpp
+	IO/Input.cpp
+	Render/RendererAPI.cpp
+	Render/RenderContext.cpp
+	Render/Framebuffer.cpp
+	Render/Pipeline.cpp
+	Render/Resources/VertexBuffer.cpp
+	Render/Resources/IndexBuffer.cpp
+	Render/Resources/Shader.cpp
+	Render/Resources/VertexArray.cpp
+	Render/Resources/Texture2D.cpp
 )
 set(PLATFORM_HEADERS
-	GraphicsBackend.h
-	Window.h
-	Input.h
-	RendererAPI.h
-	VertexBuffer.h
-	IndexBuffer.h
-	Shader.h
-	VertexArray.h
-	Texture2D.h
-	Framebuffer.h
-	RenderContext.h
-	Pipeline.h
+	Backend/GraphicsBackend.h
+	IO/Window.h
+	IO/Input.h
+	Render/RendererAPI.h
+	Render/RenderContext.h
+	Render/Framebuffer.h
+	Render/Pipeline.h
+	Render/Resources/VertexBuffer.h
+	Render/Resources/IndexBuffer.h
+	Render/Resources/Shader.h
+	Render/Resources/VertexArray.h
+	Render/Resources/Texture2D.h
 )
 target_sources(EhuLib PRIVATE ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

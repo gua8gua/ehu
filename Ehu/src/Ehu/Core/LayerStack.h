@@ -15,6 +15,9 @@ namespace Ehu {
 		void PopLayer(Layer* layer);
 		void PopOverlay(Layer* overlay);
 
+		/// 移除并 delete 所有层，由 Application 析构时显式调用以控制析构顺序（先销毁 Layer 再 Shutdown Input 等）
+		void Clear();
+
 		std::vector<Layer*>::iterator begin() { return m_Layers.begin(); }
 		std::vector<Layer*>::iterator end() { return m_Layers.end(); }
 		std::vector<Layer*>::reverse_iterator rbegin() { return m_Layers.rbegin(); }

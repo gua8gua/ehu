@@ -1,6 +1,6 @@
 #include "ehupch.h"
 #include "ImGuiBackendGLFWOpenGL.h"
-#include "Platform/Window.h"
+#include "Platform/IO/Window.h"
 #include "Core/Application.h"
 #include "imgui.h"
 #include <GLFW/glfw3.h>
@@ -17,7 +17,8 @@ namespace Ehu {
 		(void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		// 暂不启用 ViewportsEnable，避免多视口渲染路径在主窗口上清屏导致 3D 场景被擦除；与 OpenGL 3.3 一致使用 330
+		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 		ImGui::StyleColorsDark();
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -28,7 +29,7 @@ namespace Ehu {
 
 		GLFWwindow* native = static_cast<GLFWwindow*>(window->GetNativeWindow());
 		ImGui_ImplGlfw_InitForOpenGL(native, true);
-		ImGui_ImplOpenGL3_Init("#version 410");
+		ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	// 开始 ImGui 帧

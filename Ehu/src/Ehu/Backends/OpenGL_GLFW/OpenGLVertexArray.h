@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/VertexArray.h"
+#include "Platform/Render/Resources/VertexArray.h"
 
 namespace Ehu {
 

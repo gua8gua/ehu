@@ -28,11 +28,12 @@ ehu/
 │           ├── Platform/              # 平台抽象：后端选择与接口
 │           │   ├── GraphicsBackend, Window, Input, RendererAPI
 │           │   └── CMakeLists.txt
+│           ├── Scene/                 # 场景模块（纯数据）：Scene, SceneNode, SceneEntity
+│           │   └── CMakeLists.txt
 │           ├── Renderer/              # 渲染器层（平台无关）
 │           │   ├── Camera/            # OrthographicCamera, PerspectiveCamera
-│           │   ├── Scene/             # Scene, SceneNode
 │           │   ├── Material/          # Material, MaterialProperties
-│           │   ├── Renderer2D, Renderer3D, Renderer, RendererModule.h
+│           │   ├── SceneLayer, Renderer2D, Renderer3D, Renderer, RendererModule.h
 │           │   └── CMakeLists.txt
 │           ├── ImGui/                 # ImGui 集成（仅依赖抽象）
 │           │   ├── ImGuiLayer, ImGuiBackend（接口 + 工厂）
@@ -85,19 +86,23 @@ cmake --build . --config Debug
 **配置与构建均需在 VS 开发者环境中执行**（否则会报 `rc`/`kernel32.lib` 找不到）。
 
 1. **配置**（生成 `build-ninja/compile_commands.json` 与构建文件）：
-   ```powershell
-   .\scripts\gen_compile_commands.ps1
-   ```
+  - 在 **PowerShell** 中（建议在项目根目录）：
+  - 在 **cmd** 中（项目根目录）：
+    ```cmd
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gen_compile_commands.ps1
+    ```
 2. **编译**：
-   ```powershell
-   .\scripts\build_ninja.ps1
-   ```
+  ```powershell
+  powershell -NoProfile -ExecutionPolicy  Bypass -File  .\scripts\build_ninja.ps1
+  ```
 
 输出位置（与 CMake 中 `BUILD_DIR` 一致）：
 
 - 可执行文件：`build-ninja/bin/Debug/SandBox.exe`
 - 静态库：`build-ninja/bin-int/Debug/EhuLib.lib`
 - 编译数据库：`build-ninja/compile_commands.json`（给 VS Code/Cursor 的 C++ 扩展用）
+
+**断言**：Debug 配置下 CMake 已定义 `EHU_ENABLE_ASSERTS`，`EHU_ASSERT` / `EHU_CORE_ASSERT` 生效；Release/Dist 不定义，断言为空操作。
 
 若未使用脚本，可先打开 **“Developer PowerShell for VS 2022”**，再执行：
 `cd build-ninja` → `cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug ..` → `ninja`。
@@ -117,9 +122,10 @@ cmake --build . --config Debug
 
 用户通过实现 `CreateApplication()` 返回自定义 `Application` 子类。
 
-### 层与层栈
+### 层与层栈、Scene 与 Layer
 
-- **Layer**：可重写 `OnAttach`、`OnDetach`、`OnUpdate`、`OnImGuiRender`、`OnEvent`。
+- **Layer**：可重写 `OnAttach`、`OnDetach`、`OnUpdate`、`OnImGuiRender`、`OnEvent`。负责“怎么做（逻辑与渲染顺序）”。
+- **Scene**：独立模块，纯数据；管理 SceneEntity，实体由场景拥有。渲染由引擎提供的 **SceneLayer** 负责提交，用户只创建场景、设置实体状态（如 SetPosition/SetRotation）。详见 [ARCHITECTURE.md](ARCHITECTURE.md) 与 [RENDERER_ARCHITECTURE.md](RENDERER_ARCHITECTURE.md)。
 - **LayerStack**：普通层与 Overlay；事件从栈顶向栈底派发，可被 `Handled` 截断。
 
 ### 事件系统
@@ -128,19 +134,19 @@ cmake --build . --config Debug
 
 ### 窗口、输入与渲染抽象
 
-- **Window**：`Platform/Window.h` 抽象，`Window::Create(WindowProps)` 在 `Platform/Window.cpp` 中按 `GetGraphicsBackend()` 分发。
-- **Input**：`Platform/Input.h` 抽象，`Input::Init()` 按后端创建实现，由 Application 在窗口创建后调用。
-- **RendererAPI**：`Platform/RendererAPI.h` 抽象（`SetClearColor`、`Clear`），`RendererAPI::Init()` 按后端创建；Application 主循环只调用 `RendererAPI::Get().Clear()`，无直接 OpenGL 依赖。
+- **Window**：`Platform/IO/Window.h` 抽象，`Window::Create(WindowProps)` 在 `Platform/IO/Window.cpp` 中按 `GetGraphicsBackend()` 分发。
+- **Input**：`Platform/IO/Input.h` 抽象，`Input::Init()` 按后端创建实现，由 Application 在窗口创建后调用。
+- **RendererAPI**：`Platform/Render/RendererAPI.h` 抽象（`SetClearColor`、`Clear`），`RendererAPI::Init()` 按后端创建；Application 主循环只调用 `RendererAPI::Get().Clear()`，无直接 OpenGL 依赖。
 - **ImGuiBackend**：`ImGui/ImGuiBackend.h` 抽象，`ImGuiBackend::Create(backend)` 返回对应实现（如 `Backends/OpenGL_GLFW/ImGuiBackendGLFWOpenGL`）。
 
 ### 图形/窗口后端选择
 
-- **GraphicsBackend** 与 **GetGraphicsBackend()** 位于 `Platform/`，可读环境变量 **EHU_GRAPHICS_BACKEND**（如 `OpenGL_GLFW`），默认 `OpenGL_GLFW`。
+- **GraphicsBackend** 与 **GetGraphicsBackend()** 位于 `Platform/Backend/`，可读环境变量 **EHU_GRAPHICS_BACKEND**（如 `OpenGL_GLFW`），默认 `OpenGL_GLFW`。
 - 新增后端时：在 `GetGraphicsBackend()`、`Window::Create`、`Input::Init`、`RendererAPI::Init`、`ImGuiBackend::Create` 中增加分支，并在 `Backends/` 下添加新实现目录。
 
 ### 日志与宏
 
-- **Log::Init()**：在 `EntryPoint` 中调用；宏 `EHU_CORE_*` / `EHU_*`。
+- **Log::Init()**：在 `EntryPoint` 中调用；宏 `EHU_CORE_`* / `EHU_`*。
 - **Core/Core.h**：`EHU_API`、`EHU_ASSERT` / `EHU_CORE_ASSERT`、`BIT(x)`；预定义 `EHU_PLATFORM_WINDOWS`、`EHU_DEBUG` / `EHU_RELEASE` / `EHU_DIST` 等。
 
 ---
@@ -148,9 +154,9 @@ cmake --build . --config Debug
 ## 如何编写一个“游戏”应用
 
 1. 工程链接 **EhuLib**，实现 `Ehu::Application* Ehu::CreateApplication()`。
-2. 继承 `Ehu::Application`，在构造函数中 `PushLayer(...)` / `PushOverLayer(...)`。
-3. 继承 `Ehu::Layer` 实现 `OnUpdate`、`OnImGuiRender`、`OnEvent`。
-4. 包含 **Ehu.h**（推荐）或按需包含 `Core/Application.h`、`Core/Layer.h`、`Platform/Input.h` 等。
+2. 继承 `Ehu::Application`，在构造函数中 `PushLayer(...)` / `PushOverlay(...)`。
+3. 继承 `Ehu::Layer` 实现 `OnUpdate(const TimeStep&)`、`OnImGuiRender`、`OnEvent`。
+4. 包含 **Ehu.h**（推荐）或按需包含 `Core/Application.h`、`Core/Layer.h`、`Platform/IO/Input.h` 等。
 
 参考 **SandBox** 中的 `SandApp` 与 `ExampleLayer`。SandBox 的 include 路径需包含 `Ehu/src` 与 `Ehu/src/Ehu`（见 SandBox/CMakeLists.txt）。
 
@@ -158,13 +164,15 @@ cmake --build . --config Debug
 
 ## 依赖（vendor）
 
-| 依赖   | 用途           |
-|--------|----------------|
+
+| 依赖     | 用途                   |
+| ------ | -------------------- |
 | GLFW   | 窗口与输入（仅 Backends 使用） |
-| GLAD   | OpenGL 加载    |
-| imgui  | 即时模式 GUI   |
-| glm    | 数学           |
-| spdlog | 日志           |
+| GLAD   | OpenGL 加载            |
+| imgui  | 即时模式 GUI             |
+| glm    | 数学                   |
+| spdlog | 日志                   |
+
 
 ---
 
@@ -174,47 +182,45 @@ cmake --build . --config Debug
 
 ### 操作步骤
 
-1. **确认已集成（已完成）**  
-   - 源码在 `Ehu/vendor/glm`。  
-   - `Ehu/CMakeLists.txt` 中已有：
-     - `add_subdirectory(vendor/glm)`
-     - `target_link_libraries(EhuLib PUBLIC glm)`  
-   - EhuLib 及链接了 EhuLib 的目标（如 SandBox）会自动获得 glm 的 include 与链接。
-
-2. **在引擎或 SandBox 代码中使用**  
-   - 在需要数学运算的 `.cpp` 或 `.h` 中按需包含，例如：
-     ```cpp
-     #include <glm/glm.hpp>           // 核心：vec2, vec3, vec4, mat4 等
-     #include <glm/gtc/matrix_transform.hpp>  // 常用：translate, rotate, scale, ortho, perspective
-     #include <glm/gtc/type_ptr.hpp>   // glm::value_ptr() 传给 OpenGL uniform
-     ```
-   - 使用 `glm::` 命名空间下的类型与函数，例如：
-     ```cpp
-     glm::vec3 position(1.0f, 0.0f, 0.0f);
-     glm::mat4 view = glm::lookAt(eye, center, up);
-     glm::mat4 proj = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
-     ```
-
-3. **若将来要更换 glm 版本或路径**  
-   - 修改 `Ehu/CMakeLists.txt` 中的 `add_subdirectory(vendor/glm)` 指向新路径，或通过 `find_package(glm)` 使用系统/安装的 glm，并保持 `target_link_libraries(EhuLib PUBLIC glm)`（或 `glm::glm`）。
+1. **确认已集成（已完成）**
+  - 源码在 `Ehu/vendor/glm`。  
+  - `Ehu/CMakeLists.txt` 中已有：
+    - `add_subdirectory(vendor/glm)`
+    - `target_link_libraries(EhuLib PUBLIC glm)`
+  - EhuLib 及链接了 EhuLib 的目标（如 SandBox）会自动获得 glm 的 include 与链接。
+2. **在引擎或 SandBox 代码中使用**
+  - 在需要数学运算的 `.cpp` 或 `.h` 中按需包含，例如：
+  - 使用 `glm::` 命名空间下的类型与函数，例如：
+    ```cpp
+    glm::vec3 position(1.0f, 0.0f, 0.0f);
+    glm::mat4 view = glm::lookAt(eye, center, up);
+    glm::mat4 proj = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
+    ```
+3. **若将来要更换 glm 版本或路径**
+  - 修改 `Ehu/CMakeLists.txt` 中的 `add_subdirectory(vendor/glm)` 指向新路径，或通过 `find_package(glm)` 使用系统/安装的 glm，并保持 `target_link_libraries(EhuLib PUBLIC glm)`（或 `glm::glm`）。
 
 ### 常用头文件速查
 
-| 头文件 | 用途 |
-|--------|------|
-| `glm/glm.hpp` | 向量、矩阵基础类型 |
+
+| 头文件                            | 用途                                                      |
+| ------------------------------ | ------------------------------------------------------- |
+| `glm/glm.hpp`                  | 向量、矩阵基础类型                                               |
 | `glm/gtc/matrix_transform.hpp` | 变换：translate, rotate, scale, ortho, perspective, lookAt |
-| `glm/gtc/type_ptr.hpp` | value_ptr（传矩阵/向量给 OpenGL） |
-| `glm/gtc/quaternion.hpp` | 四元数 |
+| `glm/gtc/type_ptr.hpp`         | value_ptr（传矩阵/向量给 OpenGL）                               |
+| `glm/gtc/quaternion.hpp`       | 四元数                                                     |
+
 
 ---
 
 ## 文档索引（本目录）
 
-| 文件 | 内容 |
-|------|------|
-| [README.md](README.md) | 项目说明、结构、构建、架构与使用。 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 模块依赖、分层、事件流、后端选择与扩展。 |
+
+| 文件                                                   | 内容                                     |
+| ---------------------------------------------------- | -------------------------------------- |
+| [README.md](README.md)                               | 项目说明、结构、构建、架构与使用。                      |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                   | 模块依赖、分层、事件流、后端选择与扩展。                   |
 | [RENDERER_ARCHITECTURE.md](RENDERER_ARCHITECTURE.md) | 渲染架构调度关系、主循环、Renderer 与 Render API 分层。 |
-| [TODO.md](TODO.md) | 待办：Timestep、渲染管线、相机、命名与层级等。 |
-| [devlog/](devlog/) | 开发日志，记录项目进度与变更。 |
+| [TODO.md](TODO.md)                                   | 待办：Timestep、渲染管线、相机、命名与层级等。            |
+| [devlog/](devlog/)                                   | 开发日志，记录项目进度与变更。                        |
+
+

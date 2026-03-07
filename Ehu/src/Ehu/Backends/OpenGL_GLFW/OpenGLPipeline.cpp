@@ -1,7 +1,7 @@
 #include "OpenGLPipeline.h"
-#include "Platform/RendererAPI.h"
-#include "Platform/Shader.h"
-#include "Platform/VertexArray.h"
+#include "Platform/Render/RendererAPI.h"
+#include "Platform/Render/Resources/Shader.h"
+#include "Platform/Render/Resources/VertexArray.h"
 
 namespace Ehu {
 

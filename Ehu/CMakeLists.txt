@@ -67,7 +67,7 @@ endif()
 
 # 配置文件类型（Debug, Release, Dist）
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_definitions(-DEHU_DEBUG)
+    add_definitions(-DEHU_DEBUG -DEHU_ENABLE_ASSERTS)
     if(NOT MSVC)
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
     endif()

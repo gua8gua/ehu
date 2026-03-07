@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/VertexBuffer.h"
+#include "Platform/Render/Resources/VertexBuffer.h"
 
 namespace Ehu {
 

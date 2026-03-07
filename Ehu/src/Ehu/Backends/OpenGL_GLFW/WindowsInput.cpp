@@ -1,6 +1,6 @@
 #include "WindowsInput.h"
 #include "Core/Application.h"
-#include "Platform/Input.h"
+#include "Platform/IO/Input.h"
 #include <GLFW/glfw3.h>
 
 namespace Ehu {

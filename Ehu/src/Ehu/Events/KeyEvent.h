@@ -1,6 +1,7 @@
 #pragma once
 #include "Event.h"
 #include "Core/KeyCodes.h"
+#include <cstdint>
 
 namespace Ehu {
 
@@ -53,20 +54,26 @@ namespace Ehu {
         EVENT_CLASS_TYPE(KeyReleased)
     };
 
-    class KeyTypedEvent : public KeyEvent
+    /// 字符输入事件（Unicode codepoint），与 KeyPressed/KeyReleased 的按键码语义不同；由 glfwSetCharCallback 等触发
+    class KeyTypedEvent : public Event
     {
     public:
-        KeyTypedEvent(const KeyCode keycode)
-            : KeyEvent(keycode) {}
+        KeyTypedEvent(uint32_t codepoint)
+            : m_Codepoint(codepoint) {}
+
+        uint32_t GetCodepoint() const { return m_Codepoint; }
 
         std::string ToString() const override
         {
             std::stringstream ss;
-            ss << "KeyTypedEvent: " << m_KeyCode;
+            ss << "KeyTypedEvent: " << m_Codepoint;
             return ss.str();
         }
 
         EVENT_CLASS_TYPE(KeyTyped)
+        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
+    private:
+        uint32_t m_Codepoint;
     };
 }
 

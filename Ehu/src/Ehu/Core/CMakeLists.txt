@@ -13,6 +13,8 @@ set(CORE_HEADERS
 	LayerStack.h
 	Log.h
 	MouseCodes.h
+	TimeStep.h
+	Timer.h
 )
 target_sources(EhuLib PRIVATE ${CORE_SOURCES} ${CORE_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

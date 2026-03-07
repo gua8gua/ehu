@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ehupch.h"
-#include "Platform/Input.h"
+#include "Platform/IO/Input.h"
 #include "Core/KeyCodes.h"
 #include "Core/MouseCodes.h"
 

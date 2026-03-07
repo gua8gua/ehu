@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ehupch.h"
-#include "Platform/GraphicsBackend.h"
+#include "Platform/Backend/GraphicsBackend.h"
 
 namespace Ehu {
 

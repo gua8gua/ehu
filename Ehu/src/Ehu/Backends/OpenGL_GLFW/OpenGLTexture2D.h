@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/Texture2D.h"
+#include "Platform/Render/Resources/Texture2D.h"
 
 namespace Ehu {
 

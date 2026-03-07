@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/IndexBuffer.h"
+#include "Platform/Render/Resources/IndexBuffer.h"
 
 namespace Ehu {
 

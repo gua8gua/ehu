@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/Framebuffer.h"
+#include "Platform/Render/Framebuffer.h"
 #include <vector>
 
 namespace Ehu {

@@ -5,7 +5,8 @@
 namespace Ehu {
 
 	OpenGLVertexArray::OpenGLVertexArray() {
-		glCreateVertexArrays(1, &m_RendererID);
+		// 使用 3.3 兼容 API；glCreateVertexArrays 为 4.5 DSA，在 3.3 上下文中不可用会导致崩溃
+		glGenVertexArrays(1, &m_RendererID);
 	}
 
 	OpenGLVertexArray::~OpenGLVertexArray() {

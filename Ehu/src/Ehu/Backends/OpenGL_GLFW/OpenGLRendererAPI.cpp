@@ -1,6 +1,6 @@
 #include "OpenGLRendererAPI.h"
-#include "Platform/VertexArray.h"
-#include "Platform/Framebuffer.h"
+#include "Platform/Render/Resources/VertexArray.h"
+#include "Platform/Render/Framebuffer.h"
 #include <glad/glad.h>
 
 namespace Ehu {
@@ -24,8 +24,13 @@ namespace Ehu {
 	}
 
 	void OpenGLRendererAPI::SetDepthTest(bool enable) {
-		if (enable) glEnable(GL_DEPTH_TEST);
-		else glDisable(GL_DEPTH_TEST);
+		if (enable) {
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+		} else {
+			glDisable(GL_DEPTH_TEST);
+			glDepthMask(GL_FALSE);
+		}
 	}
 
 	void OpenGLRendererAPI::SetBlend(bool enable) {

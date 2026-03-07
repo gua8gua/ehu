@@ -1,11 +1,13 @@
 #include "ehupch.h"
 #include "Renderer2D.h"
-#include "Platform/RendererAPI.h"
-#include "Platform/Shader.h"
-#include "Platform/VertexArray.h"
-#include "Platform/VertexBuffer.h"
-#include "Platform/IndexBuffer.h"
+#include "Platform/Render/RendererAPI.h"
+#include "Platform/Render/Resources/Shader.h"
+#include "Platform/Render/Resources/VertexArray.h"
+#include "Platform/Render/Resources/VertexBuffer.h"
+#include "Platform/Render/Resources/IndexBuffer.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <fstream>
+#include <chrono>
 
 namespace Ehu {
 
@@ -16,31 +18,18 @@ namespace Ehu {
 	static VertexBuffer* s_QuadVertexBuffer = nullptr;
 	static IndexBuffer* s_QuadIndexBuffer = nullptr;
 
-	static const char* s_VertexShaderSrc = R"(
-		#version 330 core
-		layout(location = 0) in vec3 a_Position;
-		layout(location = 1) in vec4 a_Color;
-		uniform mat4 u_ViewProjection;
-		uniform mat4 u_Transform;
-		out vec4 v_Color;
-		void main() {
-			v_Color = a_Color;
-			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
-		}
-	)";
-	static const char* s_FragmentShaderSrc = R"(
-		#version 330 core
-		in vec4 v_Color;
-		uniform vec4 u_Color;
-		out vec4 FragColor;
-		void main() {
-			FragColor = v_Color * u_Color;
-		}
-	)";
-
 	void Renderer2D::Init() {
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"Renderer2D.cpp:init_step\",\"message\":\"step\",\"data\":{\"step\":0},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"C\"}\n"; }
+		// #endregion
 		s_SceneData = new SceneData();
-		s_Shader = Shader::Create(s_VertexShaderSrc, s_FragmentShaderSrc);
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"Renderer2D.cpp:init_step\",\"message\":\"step\",\"data\":{\"step\":1},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"C\"}\n"; }
+		// #endregion
+		s_Shader = Shader::CreateDefault2D();
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"Renderer2D.cpp:init_step\",\"message\":\"step\",\"data\":{\"step\":2},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"C\"}\n"; }
+		// #endregion
 		// 单位四边形（中心在原点）：position(3) + color(4) = 7 floats per vertex
 		float quadVertices[] = {
 			-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 1.0f, 1.0f,
@@ -50,6 +39,9 @@ namespace Ehu {
 		};
 		uint32_t quadIndices[] = { 0, 1, 2, 2, 3, 0 };
 		s_QuadVertexArray = VertexArray::Create();
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"Renderer2D.cpp:init_step\",\"message\":\"step\",\"data\":{\"step\":3},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"C\"}\n"; }
+		// #endregion
 		s_QuadVertexBuffer = VertexBuffer::Create(quadVertices, sizeof(quadVertices));
 		s_QuadVertexArray->AddVertexBuffer(s_QuadVertexBuffer);
 		s_QuadIndexBuffer = IndexBuffer::Create(quadIndices, 6);

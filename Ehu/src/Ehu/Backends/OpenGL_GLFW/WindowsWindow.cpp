@@ -4,6 +4,9 @@
 #include "Events/ApplicationEvent.h"
 #include "Core/Log.h"
 #include <GLFW/glfw3.h>
+#include <cstdlib>
+#include <fstream>
+#include <chrono>
 
 namespace Ehu {
 
@@ -21,6 +24,9 @@ namespace Ehu {
 	}
 
 	void WindowsWindow::Init(const WindowProps& props) {
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) { _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:Init_start\",\"message\":\"Init entry\",\"data\":{\"step\":0},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"A\"}\n"; _f.flush(); } }
+		// #endregion
 		m_Data.Title = props.title;
 		m_Data.Width = props.width;
 		m_Data.Height = props.height;
@@ -34,10 +40,33 @@ namespace Ehu {
 			s_GLFWInitialized = true;
 		}
 
+		// 请求 OpenGL 3.3 兼容 + 深度缓冲：保证有深度缓冲且避免 Core Profile 导致的闪退
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+		glfwWindowHint(GLFW_DEPTH_BITS, 24);
+
 		m_Window = glfwCreateWindow((int)props.width, (int)props.height, m_Data.Title.c_str(), nullptr, nullptr);
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) { _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:post_create\",\"message\":\"glfwCreateWindow\",\"data\":{\"window_ok\":" << (m_Window ? 1 : 0) << "},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"A\"}\n"; _f.flush(); } }
+		// #endregion
+		if (!m_Window) {
+			const char* errDesc = nullptr;
+			(void)glfwGetError(&errDesc);
+			EHU_CORE_ERROR("glfwCreateWindow failed: {0}", errDesc ? errDesc : "unknown");
+			EHU_CORE_ASSERT(false, "glfwCreateWindow failed");
+			std::abort();
+		}
 		glfwMakeContextCurrent(m_Window);
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-		EHU_CORE_ASSERT(status, "Failed to initialize GLAD");
+		// #region agent log
+		{ std::ofstream _f("debug-8e1d5b.log", std::ios::app); if (_f) { _f << "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:post_glad\",\"message\":\"gladLoadGLLoader\",\"data\":{\"status\":" << status << "},\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() << ",\"hypothesisId\":\"B\"}\n"; _f.flush(); } }
+		// #endregion
+		if (!status) {
+			EHU_CORE_ERROR("gladLoadGLLoader failed");
+			EHU_CORE_ASSERT(false, "Failed to initialize GLAD");
+			std::abort();
+		}
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 

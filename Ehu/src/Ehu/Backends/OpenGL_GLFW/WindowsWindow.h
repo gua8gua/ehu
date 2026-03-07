@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ehupch.h"
-#include "Platform/Window.h"
+#include "Platform/IO/Window.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 

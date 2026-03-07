@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform/Shader.h"
+#include "Platform/Render/Resources/Shader.h"
 #include <unordered_map>
 
 namespace Ehu {
@@ -9,6 +9,10 @@ namespace Ehu {
 	public:
 		OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc);
 		virtual ~OpenGLShader();
+
+		/// 底层持有的默认 2D/3D 着色器（position+color, u_ViewProjection/u_Transform/u_Color）
+		static Shader* CreateDefault2D();
+		static Shader* CreateDefault3D();
 
 		void Bind() const override;
 		void Unbind() const override;
