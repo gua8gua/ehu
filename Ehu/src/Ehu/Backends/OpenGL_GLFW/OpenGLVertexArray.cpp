@@ -22,16 +22,25 @@ namespace Ehu {
 	}
 
 	void OpenGLVertexArray::AddVertexBuffer(VertexBuffer* vertexBuffer) {
+		AddVertexBuffer(vertexBuffer, 7);
+	}
+
+	void OpenGLVertexArray::AddVertexBuffer(VertexBuffer* vertexBuffer, int strideFloats) {
 		Bind();
 		vertexBuffer->Bind();
 
-		// 布局：position (vec3) + color (vec4) = 7 floats, stride 7 * 4
+		const int stride = strideFloats * static_cast<int>(sizeof(float));
 		glEnableVertexAttribArray(m_VertexBufferIndex);
-		glVertexAttribPointer(m_VertexBufferIndex, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (const void*)0);
+		glVertexAttribPointer(m_VertexBufferIndex, 3, GL_FLOAT, GL_FALSE, stride, (const void*)0);
 		m_VertexBufferIndex++;
 		glEnableVertexAttribArray(m_VertexBufferIndex);
-		glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (const void*)(3 * sizeof(float)));
+		glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(3 * sizeof(float)));
 		m_VertexBufferIndex++;
+		if (strideFloats >= 9) {
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 2, GL_FLOAT, GL_FALSE, stride, (const void*)(7 * sizeof(float)));
+			m_VertexBufferIndex++;
+		}
 
 		m_VertexBuffers.push_back(vertexBuffer);
 	}

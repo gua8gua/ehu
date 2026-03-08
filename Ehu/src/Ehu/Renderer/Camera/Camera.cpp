@@ -5,8 +5,12 @@ namespace Ehu {
 
 	OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top,
 		float nearZ, float farZ) {
-		m_ProjectionMatrix = glm::ortho(left, right, bottom, top, nearZ, farZ);
+		SetProjection(left, right, bottom, top, nearZ, farZ);
 		RecalculateViewMatrix();
+	}
+
+	void OrthographicCamera::SetProjection(float left, float right, float bottom, float top, float nearZ, float farZ) {
+		m_ProjectionMatrix = glm::ortho(left, right, bottom, top, nearZ, farZ);
 	}
 
 	void OrthographicCamera::RecalculateViewMatrix() {

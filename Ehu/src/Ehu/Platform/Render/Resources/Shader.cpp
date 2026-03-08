@@ -36,6 +36,20 @@ namespace Ehu {
 		}
 	}
 
+	Shader* Shader::CreateDefault2DTextured() {
+		switch (GetGraphicsBackend()) {
+			case GraphicsBackend::OpenGL_GLFW: {
+#if defined(EHU_PLATFORM_WINDOWS)
+				return OpenGLShader::CreateDefault2DTextured();
+#else
+				return nullptr;
+#endif
+			}
+			default:
+				return nullptr;
+		}
+	}
+
 	Shader* Shader::CreateDefault3D() {
 		switch (GetGraphicsBackend()) {
 			case GraphicsBackend::OpenGL_GLFW: {

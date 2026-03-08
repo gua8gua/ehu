@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Ref.h"
 #include "Platform/IO/Window.h"
 #include "LayerStack.h"
 #include <vector>
@@ -29,8 +30,8 @@ namespace Ehu {
 		static Application& Get() { return *s_Instance; }
 		Window& GetWindow() { return *m_Window; }
 
-		/// 场景注册：Application 取得 Scene 所有权，析构或 UnregisterScene 时释放
-		void RegisterScene(Scene* scene, bool activated = true);
+		/// 场景注册：Application 持有 Ref<Scene>，析构或 UnregisterScene 时移除引用
+		void RegisterScene(Ref<Scene> scene, bool activated = true);
 		void UnregisterScene(Scene* scene);
 		void SetSceneActivated(Scene* scene, bool activated);
 		/// 当前已激活的场景列表（供 Layer 在逻辑 Tick 与 Extract 阶段使用）
@@ -41,14 +42,14 @@ namespace Ehu {
 		bool OnWindowResize(WindowResizeEvent& event);
 
 		LayerStack m_LayerStack;
-		std::unique_ptr<Window> m_Window;
+		Scope<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer = nullptr;
-		RenderQueue* m_RenderQueue = nullptr;
+		Scope<RenderQueue> m_RenderQueue;
 		TimeStep m_TimeStep;
 		bool m_Running = true;
 		static Application* s_Instance;
 
-		std::vector<std::pair<Scene*, bool>> m_Scenes;  /// scene + activated
+		std::vector<std::pair<Ref<Scene>, bool>> m_Scenes;  /// scene + activated
 		mutable std::vector<Scene*> m_ActivatedScenesCache;
 	};
 

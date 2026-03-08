@@ -1,32 +1,50 @@
 #include "ehupch.h"
 #include "SceneLayer.h"
 #include "Scene/Scene.h"
-#include "Scene/SceneCameraEntity.h"
-#include "Scene/SceneEntity.h"
+#include "ECS/World.h"
+#include "ECS/Components.h"
 #include "RenderQueue.h"
+#include "Renderer/Camera/Camera.h"
 #include "Core/Application.h"
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace Ehu {
 
-	/// Extract 阶段：将归属本层的实体从场景中提取并打包提交到 queue（含视图裁剪占位，后续可加视锥裁剪）
-	static void SubmitEntitiesOfLayerToQueue(const Scene& scene, const Layer* thisLayer, RenderQueue& queue, Camera* viewCamera) {
-		for (SceneEntity* e : scene.GetEntities()) {
-			if (e->GetRenderLayer() != thisLayer)
-				continue;
-			const glm::mat4& wt = e->GetTransform();
-			if (e->HasMeshComponent()) {
-				const MeshComponent& m = e->GetMeshComponent();
-				if (m.VAO && m.IndexCount > 0)
-					queue.SubmitMesh(m.VAO, m.IndexCount, wt, m.Color, m.SortKey, m.Transparent, viewCamera, 0);
-			}
-			if (e->HasSpriteComponent()) {
-				const SpriteComponent& s = e->GetSpriteComponent();
+	namespace {
+
+		void RunCameraSync(World& w) {
+			w.Each<TransformComponent, CameraComponent>([&](Entity, TransformComponent& t, CameraComponent& c) {
+				if (!c.Camera) return;
+				Camera* cam = c.Camera;
+				const glm::vec3 pos = t.Position;
+				const glm::vec3 eulerDeg = glm::degrees(glm::eulerAngles(t.Rotation));
+				if (auto* pc = dynamic_cast<PerspectiveCamera*>(cam)) {
+					pc->SetPosition(pos);
+					pc->SetRotation(eulerDeg);
+				} else if (auto* oc = dynamic_cast<OrthographicCamera*>(cam)) {
+					oc->SetPosition(pos);
+					oc->SetRotation(eulerDeg.z);
+				}
+			});
+		}
+
+		void SubmitEntitiesOfLayerToQueue(World& world, const Layer* thisLayer, RenderQueue& queue, Camera* viewCamera) {
+			world.Each<TransformComponent, SpriteComponent, TagComponent>([&](Entity, TransformComponent& t, SpriteComponent& s, TagComponent& tag) {
+				if (tag.RenderLayer != thisLayer) return;
+				const glm::mat4& wt = t.GetWorldMatrix();
 				glm::vec3 pos(wt[3][0], wt[3][1], wt[3][2]);
 				queue.SubmitQuad(pos, s.Size, s.Color, s.SortKey, s.Transparent, viewCamera, 0);
-			}
+			});
+			world.Each<TransformComponent, MeshComponent, TagComponent>([&](Entity, TransformComponent& t, MeshComponent& m, TagComponent& tag) {
+				if (tag.RenderLayer != thisLayer) return;
+				if (!m.VAO || m.IndexCount == 0) return;
+				queue.SubmitMesh(m.VAO, m.IndexCount, t.GetWorldMatrix(), m.Color, m.SortKey, m.Transparent, viewCamera, 0);
+			});
 		}
-	}
+
+	} // namespace
 
 	SceneLayer::SceneLayer(const std::string& name)
 		: Layer(name)
@@ -39,22 +57,19 @@ namespace Ehu {
 	}
 
 	void SceneLayer::OnUpdate(const TimeStep& timestep) {
-		// Phase1 逻辑 Tick：驱动所有已激活场景的 OnUpdate（ECS/Systems），再执行本层额外逻辑
 		for (Scene* scene : Application::Get().GetActivatedScenes())
 			scene->OnUpdate(timestep);
 		OnUpdateScene(timestep);
 	}
 
 	void SceneLayer::SubmitTo(RenderQueue& queue) const {
-		// Phase2 Extract：从所有已激活场景中提取归属本层的实体；先取得该场景主相机用于后续位置变换/排序，无主相机直接跳过
 		for (Scene* scene : Application::Get().GetActivatedScenes()) {
 			if (!scene) continue;
-			SceneCameraEntity* mainCamEnt = scene->GetMainCamera();
-			if (!mainCamEnt) continue;
-			Camera* cam = mainCamEnt->GetCamera();
+			World& world = scene->GetWorld();
+			RunCameraSync(world);
+			Camera* cam = scene->GetMainCamera();
 			if (!cam) continue;
-			mainCamEnt->SyncCameraFromTransform();
-			SubmitEntitiesOfLayerToQueue(*scene, this, queue, cam);
+			SubmitEntitiesOfLayerToQueue(world, this, queue, cam);
 		}
 	}
 

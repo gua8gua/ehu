@@ -50,7 +50,7 @@ namespace Ehu {
 
 	ImGuiLayer::ImGuiLayer(GraphicsBackend backend)
 		: Layer("ImGuiLayer")
-		, m_Backend(ImGuiBackend::Create(backend))
+		, m_Backend(Scope<ImGuiBackend>(ImGuiBackend::Create(backend)))
 	{
 	}
 

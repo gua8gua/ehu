@@ -23,9 +23,9 @@
 | --------------- | ------------------------------------------------------------------------ | --- |
 | **Timestep**    | 帧时间步长，已接入 Layer::OnUpdate(TimeStep)；可补充 GetSeconds/GetMilliseconds 等便捷接口 | 已接入 |
 | **Timer**       | 计时器工具（参考 Hazel Core），用于性能统计或延迟逻辑                                         | 待完成 |
-| **UUID**        | 全局唯一 ID，用于实体、资源引用与序列化                                                    | 待完成 |
-| **FileSystem**  | 文件系统路径与基础操作（跨平台抽象）                                                       | 待完成 |
-| **Ref / Scope** | 智能指针别名（shared_ptr/unique_ptr 封装），统一资源所有权语义                               | 待完成 |
+| **UUID**        | 全局唯一 ID，用于实体、资源引用与序列化（Core/UUID.h/.cpp，64 位）                         | 已接入 |
+| **FileSystem**  | 文件系统路径与基础操作（Core/FileSystem.h/.cpp，基于 std::filesystem）                     | 已接入 |
+| **Ref / Scope** | 智能指针别名（Core/Ref.h：Ref=shared_ptr、Scope=unique_ptr，CreateRef/CreateScope）        | 已接入 |
 
 
 ---
@@ -33,16 +33,16 @@
 ## 二、渲染器层（Renderer）
 
 
-| 功能项                | 说明                                              | 状态   |
-| ------------------ | ----------------------------------------------- | ---- |
-| **Renderer2D 批处理** | 四边形、圆形、线段等已具备；可扩展纹理四边形、子纹理                      | 部分完成 |
-| **纹理与子纹理**         | Texture 抽象与 OpenGL 实现；2D 子纹理（Sprite/Atlas）      | 待完成  |
-| **文本渲染**           | 字体与 MSDF 图集（或位图字体），Renderer2D 文本绘制 API          | 待完成  |
-| **Framebuffer**    | 帧缓冲抽象，用于渲染到纹理（如编辑器视口、后处理）                       | 待完成  |
-| **UniformBuffer**  | 统一缓冲区，向着色器传递 uniform 块（如相机、灯光）                  | 待完成  |
-| **RenderCommand**  | 渲染命令队列封装（清屏、视口、Draw 等），与现有 RenderQueue 协同或统一    | 可选   |
-| **正交相机控制器**        | OrthographicCameraController（平移、缩放、旋转），供 2D 层使用 | 待完成  |
-| **EditorCamera**   | 编辑器用弧球/轨道相机，供未来编辑器视口使用                          | 待完成  |
+| 功能项                | 说明                                                                 | 状态   |
+| ------------------ | ------------------------------------------------------------------ | ---- |
+| **Renderer2D 批处理** | 四边形、纹理四边形、子纹理已接入；多四边形合并批处理为后续扩展                                   | 部分完成 |
+| **纹理与子纹理**         | Texture 抽象与 OpenGL 实现；SubTexture2D + CreateFromCoords 网格图集已实现                    | 已完成  |
+| **文本渲染**           | 最小实现：Font 占位图集 + Renderer2D::DrawText API（ASCII）；TTF 图集可后续接 stb_truetype   | 部分完成 |
+| **Framebuffer**    | 抽象 + OpenGL 实现已存在，可与 BeginRenderPass/EndRenderPass 配合用于离屏渲染与视口纹理           | 已完成  |
+| **UniformBuffer**  | 抽象 + OpenGL 实现（Bind(slot)、SetData），可向着色器传递 uniform 块（如相机、灯光）               | 已完成  |
+| **RenderCommand**  | 渲染命令队列封装（清屏、视口、Draw 等），与现有 RenderQueue 协同或统一                              | 可选   |
+| **正交相机控制器**        | OrthographicCameraController（平移、缩放、旋转，SetMoveDelta/SetZoomDelta），供 2D 层使用   | 已完成  |
+| **EditorCamera**   | 弧球/轨道相机最小实现（透视投影、SetRotationDelta/SetZoomDelta、SetViewportSize），供编辑器视口使用 | 已完成  |
 
 
 ---

@@ -48,4 +48,7 @@ public:
 // 在 Application 子类构造函数中：PushLayer(new GameLayer());
 ```
 
-遵守上述规范可保持与现有 Ehu 代码风格一致，便于协作与维护。
+## Ref/Scope、UUID、FileSystem
+
+- 所有权与 ID、文件操作的**强制要求与使用规范**见 [ehu-core-utils]：必须使用 `Ref`/`Scope` 管理引擎资源、使用 `UUID` 表示实体/资源唯一 ID、使用 `FileSystem` 做路径与文件读写，不得绕过。
+- 遵守上述规范可保持与现有 Ehu 代码风格一致，便于协作与维护。

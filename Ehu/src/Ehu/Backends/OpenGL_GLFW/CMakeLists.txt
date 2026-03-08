@@ -11,6 +11,7 @@ set(OPENGL_GLFW_SOURCES
 	OpenGLTexture2D.cpp
 	OpenGLFramebuffer.cpp
 	OpenGLPipeline.cpp
+	OpenGLUniformBuffer.cpp
 )
 set(OPENGL_GLFW_HEADERS
 	WindowsWindow.h
@@ -24,6 +25,7 @@ set(OPENGL_GLFW_HEADERS
 	OpenGLTexture2D.h
 	OpenGLFramebuffer.h
 	OpenGLPipeline.h
+	OpenGLUniformBuffer.h
 )
 target_sources(EhuLib PRIVATE ${OPENGL_GLFW_SOURCES} ${OPENGL_GLFW_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

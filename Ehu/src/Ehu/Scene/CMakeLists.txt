@@ -4,8 +4,6 @@ set(SCENE_SOURCES
 )
 set(SCENE_HEADERS
 	Scene.h
-	SceneCameraEntity.h
-	SceneEntity.h
 )
 target_sources(EhuLib PRIVATE ${SCENE_SOURCES} ${SCENE_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

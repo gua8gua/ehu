@@ -30,6 +30,8 @@ namespace Ehu {
 		const glm::mat4& GetViewMatrix() const override { return m_ViewMatrix; }
 		glm::mat4 GetViewProjectionMatrix() const override { return m_ProjectionMatrix * m_ViewMatrix; }
 
+		void SetProjection(float left, float right, float bottom, float top, float nearZ = -1.0f, float farZ = 1.0f);
+
 		void SetPosition(const glm::vec3& position) { m_Position = position; RecalculateViewMatrix(); }
 		void SetRotation(float rotation) { m_Rotation = rotation; RecalculateViewMatrix(); }
 		const glm::vec3& GetPosition() const { return m_Position; }

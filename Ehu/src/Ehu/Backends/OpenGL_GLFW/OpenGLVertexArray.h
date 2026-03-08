@@ -12,6 +12,7 @@ namespace Ehu {
 		void Bind() const override;
 		void Unbind() const override;
 		void AddVertexBuffer(VertexBuffer* vertexBuffer) override;
+		void AddVertexBuffer(VertexBuffer* vertexBuffer, int strideFloats) override;
 		void SetIndexBuffer(IndexBuffer* indexBuffer) override;
 
 		const std::vector<VertexBuffer*>& GetVertexBuffers() const override { return m_VertexBuffers; }

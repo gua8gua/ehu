@@ -2,7 +2,11 @@
 #include "Renderer/RendererModule.h"
 #include "Core/Application.h"
 #include "Core/Layer.h"
-#include "Scene/SceneCameraEntity.h"
+#include "Scene/Scene.h"
+#include "ECS/World.h"
+#include "ECS/Components.h"
+#include "Renderer/Camera/Camera.h"
+#include "Core/Ref.h"
 #include "Platform/Render/Resources/VertexArray.h"
 #include "Platform/Render/Resources/VertexBuffer.h"
 #include "Platform/Render/Resources/IndexBuffer.h"
@@ -42,15 +46,17 @@ struct CubeData {
 	glm::vec3 RotSpeed;
 };
 
-/// 示例 3D 场景：持有立方体几何与逻辑数据，Phase1 在 OnUpdate 中更新实体变换；实体归属由 SetRenderLayer 指定
+/// 示例 3D 场景：ECS 实体 + 立方体几何；OnUpdate 中更新 Transform 组件
 class Example3DScene : public Ehu::Scene {
 public:
 	explicit Example3DScene(Ehu::Layer* renderLayer) : m_RenderLayer(renderLayer) {
-		// 主相机由场景管理：相机作为物体（SceneCameraEntity）存在于场景中，并在 Extract/Dispatch 阶段使用
-		auto* camEnt = new Ehu::SceneCameraEntity(new Ehu::PerspectiveCamera(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f));
-		camEnt->SetPosition({ 0.0f, 0.0f, 8.0f });
-		camEnt->SetRotation(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
-		AddCamera(camEnt);
+		m_MainCamera = Ehu::CreateScope<Ehu::PerspectiveCamera>(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f);
+		Ehu::Entity camEnt = CreateEntity();
+		GetWorld().AddComponent(camEnt, Ehu::TransformComponent{});
+		Ehu::TransformComponent* tc = GetWorld().GetComponent<Ehu::TransformComponent>(camEnt);
+		tc->SetPosition(0.0f, 0.0f, 8.0f);
+		tc->SetRotation(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
+		GetWorld().AddComponent(camEnt, Ehu::CameraComponent{ m_MainCamera.get() });
 		SetMainCamera(camEnt);
 
 		std::srand(static_cast<unsigned>(std::time(nullptr)));
@@ -62,13 +68,11 @@ public:
 	}
 
 	~Example3DScene() override {
-		for (Ehu::SceneEntity* e : GetEntities()) {
-			if (e->HasMeshComponent()) {
-				Ehu::MeshComponent m = e->GetMeshComponent();
-				m.VAO = nullptr;
-				e->SetMeshComponent(m);
-			}
+		for (Ehu::Entity e : m_CubeEntities) {
+			Ehu::MeshComponent* m = GetWorld().GetComponent<Ehu::MeshComponent>(e);
+			if (m) m->VAO = nullptr;
 		}
+		m_CubeEntities.clear();
 		delete m_CubeVertexArray;
 		m_CubeVertexArray = nullptr;
 		delete m_CubeVertexBuffer;
@@ -88,36 +92,43 @@ public:
 		m_CubeIndexBuffer = Ehu::IndexBuffer::Create(cubeIndices, 36);
 		m_CubeVertexArray->SetIndexBuffer(m_CubeIndexBuffer);
 
+		Ehu::World& w = GetWorld();
 		for (const CubeData& cube : m_Cubes) {
-			Ehu::SceneEntity* e = new Ehu::SceneEntity();
+			Ehu::Entity e = CreateEntity();
+			Ehu::TransformComponent tr;
+			tr.SetPosition(cube.Position);
+			w.AddComponent(e, tr);
 			Ehu::MeshComponent mesh;
 			mesh.VAO = m_CubeVertexArray;
 			mesh.IndexCount = 36;
 			mesh.Color = cube.Color;
 			mesh.SortKey = 0.0f;
 			mesh.Transparent = false;
-			e->SetMeshComponent(mesh);
-			e->SetPosition(cube.Position);
-			e->SetRenderLayer(m_RenderLayer);
-			AddEntity(e);
+			w.AddComponent(e, mesh);
+			Ehu::TagComponent* tag = w.GetComponent<Ehu::TagComponent>(e);
+			if (tag) tag->RenderLayer = m_RenderLayer;
+			m_CubeEntities.push_back(e);
 		}
 	}
 
 	void OnUpdate(const Ehu::TimeStep& timestep) override {
+		Ehu::Scene::OnUpdate(timestep);
 		float t = timestep.GetSeconds();
-		const std::vector<Ehu::SceneEntity*>& entities = GetEntities();
-		for (size_t i = 0; i < m_Cubes.size() && i < entities.size(); ++i) {
+		Ehu::World& w = GetWorld();
+		for (size_t i = 0; i < m_Cubes.size() && i < m_CubeEntities.size(); ++i) {
 			const CubeData& c = m_Cubes[i];
-			Ehu::SceneEntity* e = entities[i];
-			e->SetPosition(c.Position);
-			glm::vec3 euler(c.RotSpeed.x * t, c.RotSpeed.y * t, c.RotSpeed.z * t);
-			e->SetRotation(euler);
+			Ehu::TransformComponent* tc = w.GetComponent<Ehu::TransformComponent>(m_CubeEntities[i]);
+			if (!tc) continue;
+			tc->SetPosition(c.Position);
+			tc->SetRotation(glm::vec3(c.RotSpeed.x * t, c.RotSpeed.y * t, c.RotSpeed.z * t));
 		}
 	}
 
 private:
 	Ehu::Layer* m_RenderLayer = nullptr;
+	Ehu::Scope<Ehu::Camera> m_MainCamera;
 	std::vector<CubeData> m_Cubes;
+	std::vector<Ehu::Entity> m_CubeEntities;
 	Ehu::VertexArray* m_CubeVertexArray = nullptr;
 	Ehu::VertexBuffer* m_CubeVertexBuffer = nullptr;
 	Ehu::IndexBuffer* m_CubeIndexBuffer = nullptr;
@@ -132,7 +143,7 @@ class SandApp : public Ehu::Application {
 public:
 	SandApp() {
 		Example3DLayer* layer = new Example3DLayer();
-		Example3DScene* scene = new Example3DScene(layer);
+		Ehu::Ref<Example3DScene> scene = Ehu::CreateRef<Example3DScene>(layer);
 		scene->SetupCubes();
 		RegisterScene(scene, true);
 		PushLayer(layer);

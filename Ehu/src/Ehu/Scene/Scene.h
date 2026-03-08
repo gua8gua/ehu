@@ -2,15 +2,17 @@
 
 #include "ehupch.h"
 #include "Core/Core.h"
-#include "SceneEntity.h"
-#include "SceneCameraEntity.h"
 #include "Core/TimeStep.h"
+#include "ECS/Entity.h"
+#include "ECS/World.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
 #include <string>
 
 namespace Ehu {
+
+	class Camera;
 
 	/// 场景图节点：层次结构、变换传播（仅数据，平台无关）
 	class EHU_API SceneNode {
@@ -48,8 +50,7 @@ namespace Ehu {
 		mutable bool m_TransformDirty = true;
 	};
 
-	/// 场景：纯数据容器，管理场景图与实体；实体由场景拥有（AddEntity 取得所有权，RemoveEntity 释放）
-	/// 不实现 IDrawable；提交由渲染层 SceneLayer 通过 SubmitSceneToQueue 完成
+	/// 场景：持有 ECS World，管理实体与主相机；提交由 SceneLayer 通过 World 查询完成
 	class EHU_API Scene {
 	public:
 		Scene() = default;
@@ -61,28 +62,24 @@ namespace Ehu {
 		SceneNode* GetRoot() { return &m_Root; }
 		const SceneNode* GetRoot() const { return &m_Root; }
 
-		/// 加入实体并取得所有权；RemoveEntity 或析构时释放
-		void AddEntity(SceneEntity* entity);
-		/// 移除并 delete 该实体
-		void RemoveEntity(SceneEntity* entity);
-		const std::vector<SceneEntity*>& GetEntities() const { return m_Entities; }
+		World& GetWorld() { return m_World; }
+		const World& GetWorld() const { return m_World; }
 
-		/// 相机管理：相机作为物体（SceneCameraEntity）存在于场景中，由场景选择主相机
-		void AddCamera(SceneCameraEntity* camera);
-		void RemoveCamera(SceneCameraEntity* camera);
-		const std::vector<SceneCameraEntity*>& GetCameras() const { return m_Cameras; }
+		Entity CreateEntity();
+		void DestroyEntity(Entity e);
+		std::vector<Entity> GetEntities() const { return m_World.GetEntities(); }
 
-		void SetMainCamera(SceneCameraEntity* camera);
-		SceneCameraEntity* GetMainCamera() const { return m_MainCamera; }
+		void SetMainCamera(Entity e) { m_MainCameraEntity = e; }
+		Entity GetMainCameraEntity() const { return m_MainCameraEntity; }
+		Camera* GetMainCamera() const;
 
-		/// 逻辑 Tick：执行 ECS/Systems（物理、脚本等），仅更新状态不渲染；由 Layer::OnUpdate 驱动
-		virtual void OnUpdate(const TimeStep& timestep) { (void)timestep; }
+		/// 逻辑 Tick：运行 CameraSync 等系统，由 Layer::OnUpdate 驱动
+		virtual void OnUpdate(const TimeStep& timestep);
 
 	private:
 		SceneNode m_Root{ "Root" };
-		std::vector<SceneEntity*> m_Entities;
-		std::vector<SceneCameraEntity*> m_Cameras;
-		SceneCameraEntity* m_MainCamera = nullptr;
+		World m_World;
+		Entity m_MainCameraEntity;
 	};
 
 } // namespace Ehu

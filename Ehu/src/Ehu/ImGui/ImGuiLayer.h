@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Layer.h"
+#include "Core/Ref.h"
 #include "ImGuiBackend.h"
 #include "Platform/Backend/GraphicsBackend.h"
 #include "Events/ApplicationEvent.h"
@@ -29,7 +30,7 @@ namespace Ehu {
 		uint32_t GetActiveWidgetID() const;
 
 	private:
-		std::unique_ptr<ImGuiBackend> m_Backend;
+		Scope<ImGuiBackend> m_Backend;
 		bool m_BlockEvents = true;
 		float m_Time = 0.0f;
 	};

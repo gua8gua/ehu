@@ -16,6 +16,8 @@ namespace Ehu {
 		virtual void Unbind() const = 0;
 
 		virtual void AddVertexBuffer(VertexBuffer* vertexBuffer) = 0;
+		/// strideFloats: 每顶点 float 数；7 = position(3)+color(4)，9 = position(3)+color(4)+texCoord(2)
+		virtual void AddVertexBuffer(VertexBuffer* vertexBuffer, int strideFloats) { (void)strideFloats; AddVertexBuffer(vertexBuffer); }
 		virtual void SetIndexBuffer(IndexBuffer* indexBuffer) = 0;
 
 		virtual const std::vector<VertexBuffer*>& GetVertexBuffers() const = 0;

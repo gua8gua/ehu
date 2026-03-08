@@ -1,0 +1,62 @@
+---
+description: Ehu 核心工具使用规范与强制要求（Ref/Scope、UUID、FileSystem）
+globs: "**/*.cpp" "**/*.h"
+alwaysApply: false
+---
+
+# Ref / Scope、UUID、FileSystem 使用规范与强制要求
+
+引擎提供 `Core/Ref.h`、`Core/UUID.h`、`Core/FileSystem.h`，所有引擎与客户端代码必须按下列规范使用。
+
+---
+
+## 一、Ref / Scope（智能指针）
+
+### 强制要求
+
+- **禁止**对引擎管理的资源使用裸 `new`/`delete`（如 Layer、Window、Scene、纹理、缓冲区等）。必须使用 `Ehu::Ref<T>` 或 `Ehu::Scope<T>` 表达所有权。
+- **独占所有权**（单所有者、不可拷贝）：使用 `Ehu::Scope<T>`，构造用 `Ehu::CreateScope<T>(...)`。例如：窗口、后端实例、唯一管理器。
+- **共享所有权**（多引用、可拷贝）：使用 `Ehu::Ref<T>`，构造用 `Ehu::CreateRef<T>(...)`。例如：纹理、材质、场景实体、可被多处引用的资源。
+- 类型别名与工厂：统一使用 `Ref`/`Scope` 与 `CreateRef`/`CreateScope`，不要混用 `std::shared_ptr`/`std::unique_ptr`/`std::make_shared`/`std::make_unique` 在业务代码中。
+
+### 使用规范
+
+- 头文件中成员为“拥有”时写 `Scope<T>` 或 `Ref<T>`；仅观察不拥有时可用裸指针或 `Ref<T>`（按需）。
+- 函数参数：需要共享所有权时传 `const Ref<T>&` 或 `Ref<T>`；不取得所有权时传 `T*` 或 `const T&`。
+- 返回值：转移所有权用 `Scope<T>` 或 `Ref<T>`；不转移用引用或裸指针。
+
+---
+
+## 二、UUID
+
+### 强制要求
+
+- **实体、资源句柄、需要持久化或跨引用唯一标识的对象**必须使用 `Ehu::UUID` 作为 ID 类型，禁止使用裸 `uint64_t` 或其它自造 ID 类型表示“全局唯一标识”。
+- 新建实体、资源或需序列化的对象时，必须为其分配 `UUID()`（默认随机）或从反序列化数据恢复的 `UUID(raw)`，并在序列化/网络/引用中持久使用该 UUID。
+
+### 使用规范
+
+- 比较用 `==`/`!=`；作为 map 键或哈希容器键时可直接使用（已特化 `std::hash<Ehu::UUID>`）。
+- 日志或调试输出用 `uuid.ToString()`；持久化格式由序列化层约定（如 16 进制字符串或 64 位整数）。
+- 不要为“仅局部、临时”的标识引入 UUID；仅对需要跨帧、跨场景或跨会话唯一的对象使用。
+
+---
+
+## 三、FileSystem
+
+### 强制要求
+
+- **所有路径与文件读写**必须通过 `Ehu::FileSystem` 的静态接口完成，禁止在引擎与客户端代码中直接使用 `fopen`/`std::ifstream`/`std::ofstream` 的裸路径、或平台专用 API（如仅 Windows 的 `CreateFile`、`GetCurrentDirectory`）做跨平台路径与文件操作。
+- 路径拼接、取扩展名/文件名/父目录、判断存在/目录/文件，统一使用 `FileSystem::Join`、`GetExtension`、`GetFileName`、`GetParentPath`、`Exists`、`IsDirectory`、`IsFile`；读写在 `FileSystem::ReadTextFile` / `WriteTextFile` 不能满足时再考虑扩展 `FileSystem` 或封装平台层，而不是绕过。
+
+### 使用规范
+
+- 路径使用 `std::string`，内部由 `FileSystem` 基于 `std::filesystem` 处理分隔符与编码；如需二进制读写或大文件流式访问，在 `FileSystem` 下新增对应静态接口，保持“所有文件/路径入口在 FileSystem”的约定。
+- 资源加载、配置加载、场景保存/加载等必须通过 `FileSystem` 解析路径并读写；禁止在业务代码中硬编码平台路径分隔符或直接调用平台 API。
+
+---
+
+## 与其它规则的衔接
+
+- 与 [ehu-cpp-engine] 一致：命名、`EHU_API`、日志与断言；与 [ehu-headers] 一致：`#pragma once`、头文件职责。
+- 新增引擎或 SandBox 代码时，若涉及所有权、唯一 ID 或文件/路径，优先查阅本规则并满足上述强制要求。

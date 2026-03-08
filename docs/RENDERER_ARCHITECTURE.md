@@ -1,296 +1,217 @@
-# Ehu 渲染架构调度关系
+# Ehu 渲染架构
 
-本文档描述渲染系统的分层、调度顺序与数据流，便于理解各模块职责与调用关系。
-
----
-
-## 一、分层概览
-
-渲染架构分为两层，职责边界如下：
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Renderer 层（平台无关）                                            │
-│  Camera、Renderer2D、SceneLayer、Material、RenderQueue、Sorting 等   │
-│  不依赖 OpenGL/DirectX/Vulkan 等具体 API                            │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ 提交绘制命令 / 设置 uniform
-                                    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Render API 层（API/平台相关）                                       │
-│  RendererAPI、VertexBuffer、IndexBuffer、Shader、Texture、States 等   │
-│  由 Backends/OpenGL_GLFW 等实现                                      │
-└─────────────────────────────────────────────────────────────────┘
-```
+本文档梳理渲染子系统的构成：**平台无关部分**、**平台兼容部分**与**底层实现部分**，以及工作流程与各自保管的数据。
 
 ---
 
-## 二、三阶段流程与主循环
+## 一、架构分层总览
 
-### 2.1 三阶段概览
-
-- **第一阶段：逻辑 Tick（Logic Tick）**  
-  `App::Run()` → `Layer::OnUpdate(TimeStep)`。Layer 作为驱动者，根据生命周期决定是否驱动场景；**Scene::OnUpdate(TimeStep)** 执行 ECS/Systems（物理、脚本等），仅更新实体状态，**不进行任何渲染调用**。逻辑与渲染解耦。
-
-- **第二阶段：提取与提交（Extract & Submit）**  
-  从“逻辑世界”到“渲染世界”的桥梁。Layer 通过 **Application::GetActivatedScenes()** 取得已激活场景，对归属本层的实体（**entity->GetRenderLayer() == this**）做视图裁剪（可扩展视锥剔除）、数据打包（Transform/Material/Mesh → DrawCall 包），提交到 **RenderQueue**。
-
-- **第三阶段：渲染调度与执行（Dispatch）**  
-  **Sort**：不透明物体按 LayerIndex → MaterialKey（Shader/Material 分组）→ 深度 Front-to-Back；透明物体按 LayerIndex → 深度 Back-to-Front。**Execution**：通过 RendererAPI（VertexArray、DrawIndexed 等）将队列中的指令发送给 GPU。
-
-### 2.2 主循环顺序
-
-每帧由 `Application::Run()` 驱动：
-
-```
-Application::Run() 每帧
-│
-├─ 1. RendererAPI::SetViewport / BeginRenderPass / SetClearColor / Clear()
-│
-├─ 2. 【Phase1】for (Layer* layer : m_LayerStack) layer->OnUpdate(TimeStep)
-│       └─ SceneLayer 内：for (Scene* s : GetActivatedScenes()) s->OnUpdate(timestep)；再 OnUpdateScene(timestep)
-│
-├─ 3. m_RenderQueue->Clear()
-├─ 4. 【Phase2】for (Layer* layer : m_LayerStack)
-│       if (IDrawable* d = ...) m_RenderQueue->SetCurrentLayerIndex(i); d->SubmitTo(*m_RenderQueue)
-│       └─ SceneLayer::SubmitTo 从所有已激活场景中提取 entity->GetRenderLayer()==this 的实体入队
-│
-├─ 5. 【Phase3】m_RenderQueue->Sort()  （不透明 Layer→Material→深度；透明 Layer→深度 Back-to-Front）
-│
-├─ 6. cam = 第一个 IProvidesCamera 的 layer->GetCamera()
-├─ 7. if (cam) { SetDepthTest/SetCullFace；若有 2D 命令则 BeginScene→Flush2D→EndScene；
-│               若有 3D 命令且透视相机则 BeginScene→Flush3D→EndScene }
-│
-├─ 8. m_ImGuiLayer->Begin() → 各 Layer OnImGuiRender() → End()
-└─ 9. m_Window->OnUpdate()
-```
-
-**要点**：
-
-- **Scene 不归 Layer 所有**：场景由 **Application::RegisterScene** 注册，Layer 通过 **GetActivatedScenes()** 访问；每个可渲染实体有 **SetRenderLayer(Layer*)**，仅当 `entity->GetRenderLayer() == 当前 Layer` 时被该层提交。
-- **相机**由实现 **IProvidesCamera** 的 Layer 提供；清屏与 Flush 由 Application 统一执行。
+| 层级 | 位置 | 职责 | 依赖 |
+|------|------|------|------|
+| **平台无关** | `Ehu/Renderer/` | 场景提交接口、渲染队列、2D/3D 调度、可绘制抽象 | Core、Camera、glm；仅通过 Platform 抽象调用 GPU |
+| **平台兼容** | `Ehu/Platform/Render/`、`Platform/Backend/` | 渲染 API 抽象、上下文、资源工厂、后端选择 | Core；不包含具体 GL/Vulkan 头文件 |
+| **底层实现** | `Ehu/Backends/OpenGL_GLFW/` | OpenGL/GLFW 具体实现 | Platform 接口、glad/GLFW |
 
 ---
 
-## 三、2D 与 3D 渲染器：同一底层上下文与混用
+## 二、平台无关部分（Renderer/）
 
-**Renderer2D 和 Renderer3D 最终都作用于同一渲染底层上下文**：二者都通过 **RendererAPI::Get()**（即当前 Backend 的 OpenGL 实现）执行 `DrawIndexed`、状态设置等，绘制目标都是当前绑定的帧缓冲（默认为主窗口的后缓冲）。因此：
+与具体图形 API、窗口系统无关，只依赖“抽象接口”（RendererAPI、Shader、VertexArray 等）和数学/相机。
 
-- **可以混用**：同一帧内先调用 `Renderer3D::BeginScene` / `Submit` / `EndScene`，再调用 `Renderer2D::BeginScene` / `DrawQuad` / `EndScene`，或反之；两次绘制会叠加到同一画面，**绘制顺序决定谁在上层**（后绘制的覆盖先绘制的，由深度测试与深度缓冲决定遮挡）。
-- **状态共享**：若在 Layer 中设置了 `SetDepthTest(true)`、`SetCullFace(true)` 等，会同时影响后续的 2D 与 3D 绘制，直到再次修改或切换 RenderPass。按需在各自 BeginScene 前设置状态即可。
-- **总结**：2D 与 3D 渲染器是同一 Render API 层上的两种提交方式，共用同一上下文，可自由混用；几何数据由调用方（如 Sandbox）或 Renderer 内部（如 2D 的四边形）提供，3D 渲染器只接收 VAO + 变换 + 颜色等“要画什么”的数据。
-- **默认着色器**：默认 2D/3D 着色器的 **GLSL 源码由底层实现（Backend）持有**（如 `OpenGLShader.cpp`）；Renderer 层通过 `Shader::CreateDefault2D()` / `CreateDefault3D()` 获取 Shader 指针，仅做 Bind、SetMat4、SetFloat4 等设置与提交，不持有或修改着色器源码。需要改动默认着色器时，在对应 Backend 中修改。
+### 2.1 模块与职责
 
----
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| **Renderer** | `Renderer.h/cpp` | 渲染器层统一入口：`Init()` / `Shutdown()`，内部依次初始化/关闭 Renderer2D、Renderer3D。 |
+| **Renderer2D** | `Renderer2D.h/cpp` | 2D 场景：`BeginScene(Camera)` / `EndScene()`，`DrawQuad(position, size, color)`；使用内置四边形几何与默认 2D Shader。 |
+| **Renderer3D** | `Renderer3D.h/cpp` | 3D 场景：`BeginScene(PerspectiveCamera)` / `EndScene()`，`Submit(VertexArray*, indexCount, transform, color)`；使用默认 3D Shader，不持有网格。 |
+| **RenderQueue** | `RenderQueue.h/cpp` | 收集 2D/3D 绘制命令，按层/相机/材质/深度排序，`Flush2D()` / `Flush3D()` / `FlushAll()` 统一提交到 Renderer2D/Renderer3D。 |
+| **Drawable** | `Drawable.h` | `IDrawable::SubmitTo(RenderQueue&)`、`IProvidesCamera::GetCamera()`；Layer/SceneLayer 实现后向队列提交命令并提供相机。 |
+| **SceneLayer** | `SceneLayer.h/cpp` | 从已激活 Scene 的 **ECS::World** 做 RunCameraSync，再按 **Transform+Sprite/Mesh+TagComponent**（Tag.RenderLayer==本层）迭代并 SubmitQuad/SubmitMesh 到 RenderQueue。 |
 
-## 四、场景模块与 SceneLayer（场景注册、实体归属层）
+### 2.2 保管的数据（平台无关层）
 
-**场景模块（Scene/）** 与渲染模块分离，**仅作数据提供者**：不含 SubmitTo、不实现 IDrawable。场景由 **Application** 统一注册与激活；提交由 **SceneLayer** 从已激活场景中按 **实体所属层** 提取并入队。
+| 所有者 | 数据 | 说明 |
+|--------|------|------|
+| **Renderer** | 无静态数据 | 仅调度 Init/Shutdown。 |
+| **Renderer2D** | `SceneData*`（ViewProjectionMatrix）<br>`Shader*`（默认 2D）<br>`VertexArray*`（单位四边形） | 每帧 `BeginScene` 写入 ViewProjection；四边形几何与 Shader 在 Init 时创建。 |
+| **Renderer3D** | `SceneData*`（ViewProjectionMatrix）<br>`Shader*`（默认 3D） | 每帧 `BeginScene` 写入 ViewProjection；不持有 VAO，由调用方传入。 |
+| **RenderQueue** | `m_Commands2D` / `m_Commands3D`<br>`m_SortedOpaque2D/Transparent2D`<br>`m_SortedOpaque3D/Transparent3D`<br>`m_CurrentLayerIndex` | 每帧由各 Layer 提交后排序，Flush 时只读；Application 持有一个 `Scope<RenderQueue>`。 |
 
-### 场景注册与激活
+### 2.4 RenderCommand（可选，当前未实现）
 
-- **Application::RegisterScene(Scene*, bool activated)**：Application 取得 Scene 所有权；析构或 **UnregisterScene** 时释放。
-- **Application::GetActivatedScenes()**：返回当前已激活的场景列表，供 Layer 在 Phase1（驱动 Scene::OnUpdate）与 Phase2（Extract）使用。
-- **SetSceneActivated(Scene*, bool)**：切换场景是否参与逻辑与提取。
+**概念**：RenderCommand 是对“单次底层渲染操作”的封装，例如：清屏（SetClearColor + Clear）、设置视口（SetViewport）、开始/结束 RenderPass（BeginRenderPass/EndRenderPass）、单次 Draw（DrawIndexed）等。命令可入队后统一在合适时机执行，便于与多线程或延迟提交协同。
 
-### 实体归属层（RenderLayer）
+**与现有架构的关系**：
 
-- **SceneEntity::SetRenderLayer(Layer*)** / **GetRenderLayer()**：每个可渲染实体属于某一 Layer。Phase2 中，每个 Layer 只从所有已激活场景里提交 **entity->GetRenderLayer() == this** 的实体，实现“每层检查所有已激活场景中是否包含当前实体”的流程。
+| 现有机制 | 与 RenderCommand 的关系 |
+|----------|---------------------------|
+| **RenderQueue** | 保管的是**场景级**绘制请求（2D Quad、3D Mesh、sortKey、相机等），按层/相机/材质排序后由 FlushAll 调用 Renderer2D/3D。RenderCommand 若实现，则是更底层的**API 级**命令（Clear、Viewport、DrawIndexed 等），可与 RenderQueue 并存：例如 FlushAll 内部对每条“逻辑绘制”生成对应 RenderCommand，再由命令队列统一提交给 RendererAPI；或由 Layer 直接提交清屏/视口等命令。 |
+| **RendererAPI** | 当前由 Renderer2D/3D 直接调用 `RendererAPI::Get().Clear()`、`DrawIndexed()` 等。引入 RenderCommand 后，可改为“将调用封装为命令对象，压入队列，再由专门逻辑（如主线程或渲染线程）按序执行”，从而在保持同一套 RendererAPI 抽象的前提下，支持命令队列、批处理或多线程提交。 |
 
-### 逻辑流程（推荐）
+**设计要点（供后续实现参考）**：
 
-1. **创建 Layer 与 Scene**：`Layer* layer = new SceneLayer(camera)`（SceneLayer **不**再持有单个 Scene）；`Scene* scene = new MyScene(layer)`（或传入 layer 以便实体 SetRenderLayer(layer)）。
-2. **填充场景**：创建 SceneEntity、设置 Mesh/Sprite 组件、**e->SetRenderLayer(layer)**、`scene->AddEntity(e)`。场景逻辑（如旋转）可在 **Scene::OnUpdate(TimeStep)** 中实现（子类重写）。
-3. **注册与入栈**：`Application::Get().RegisterScene(scene, true)`；`PushLayer(layer)`。
-4. **Phase1**：SceneLayer::OnUpdate 内对 `GetActivatedScenes()` 逐场景调用 **scene->OnUpdate(timestep)**，再调用 **OnUpdateScene(timestep)**（子类可选重写）。
-5. **Phase2**：SceneLayer::SubmitTo 对每个已激活场景遍历实体，仅当 `e->GetRenderLayer() == this` 时打包提交到 RenderQueue。
+- **命令类型**：枚举或变体，如 `Clear`、`SetViewport`、`BeginRenderPass`、`EndRenderPass`、`DrawIndexed`（含 VAO、count、管线状态等）。
+- **执行时机**：可与当前每帧流程一致——在 FlushAll 之前/之后插入“执行命令队列”；或与 RenderQueue 的 Flush 合并为“先执行 Clear/Viewport/RenderPass，再按排序结果生成并执行 Draw 命令”。
+- **与 RenderQueue 的协同**：不替代 RenderQueue 的“按层/相机排序”职责；RenderCommand 负责“把已确定的绘制与状态变更”以队列形式交给 RendererAPI 执行，二者分层清晰。
 
-### 场景与实体、组件
-
-- **Scene**：管理 SceneEntity 列表；**virtual void OnUpdate(const TimeStep&)** 默认空，子类或系统在此执行 ECS/逻辑，仅更新状态不渲染。
-- **SceneEntity**：由所在场景管理；**SetRenderLayer(Layer*)** 指定归属层；SetPosition/SetRotation/SetScale、MeshComponent、SpriteComponent 等。
-- **MeshComponent** / **SpriteComponent**：同上（VAO、Color、SortKey、Transparent 等）。
-
-### SceneLayer（引擎提供）
-
-- **SceneLayer(Camera* camera)**：仅持有 Camera 所有权；**不**持有 Scene。构造后由用户注册 Scene、在实体上设置 RenderLayer 指向本层。
-- **OnUpdate**：对 `Application::Get().GetActivatedScenes()` 逐场景调用 **scene->OnUpdate(timestep)**，再 **OnUpdateScene(timestep)**。
-- **SubmitTo**：对每个已激活场景，将 **GetRenderLayer() == this** 的实体提取并 **SubmitMesh/SubmitQuad** 入队。
+当前架构不依赖 RenderCommand 即可完成整帧渲染；若需命令队列、多线程渲染或更细粒度控制，再引入此模块。
 
 ---
 
-## 五、Renderer2D / RenderQueue 与 Flush
+### 2.5 与平台层的衔接
 
-**Renderer2D** 仍为 **BeginScene → 提交 → EndScene**，但“提交”由 **Application** 通过 **RenderQueue::Flush2D()** 统一完成：
-
-```
-Application 取相机后
-│
-├─ Renderer2D::BeginScene(*cam)
-├─ m_RenderQueue->Flush2D()     ← 按排序结果依次 DrawQuad，透明段自动 SetBlend
-├─ Renderer2D::EndScene()
-├─ 若为透视相机：Renderer3D::BeginScene(*p) → Flush3D() → EndScene()
-```
-
-**数据流**：
-
-1. **Camera** 由 IProvidesCamera 提供，供 Application 传入 BeginScene。
-2. **RenderQueue** 在每帧由各 IDrawable 的 SubmitTo 填充，Sort 后 Flush2D/Flush3D 按序提交到 Renderer2D/Renderer3D。
-3. 各 Layer 的 OnUpdate 只更新逻辑；绘制由 SubmitTo → 队列 → Sort → Flush 统一完成。
+- Renderer2D / Renderer3D 在 **实现文件**（.cpp）中 `#include` Platform 的 `RendererAPI.h`、`Shader`、`VertexArray` 等，并调用：
+  - `RendererAPI::Get().DrawIndexed(...)`、`SetBlend`、`SetDepthTest` 等；
+  - `Shader::CreateDefault2D()` / `CreateDefault3D()`、`SetMat4` / `SetFloat4` 等；
+  - `VertexArray::Create()`、`VertexBuffer::Create()`、`IndexBuffer::Create()`（仅 Renderer2D 建四边形时）。
+- 头文件（.h）仅前向声明 `Shader`、`VertexArray`，不包含 Platform 路径，保持“接口上平台无关”。
 
 ---
 
-## 六、初始化顺序
+## 三、平台兼容部分（Platform/Render/、Platform/Backend/）
 
-渲染相关组件的初始化顺序（在 `Application` 构造中）：
+定义与后端无关的抽象接口，以及按 `GraphicsBackend` 选择实现的工厂；不包含 OpenGL/Vulkan 等具体 API 头文件。
 
-```
-1. Window::Create()           ← 创建窗口、OpenGL 上下文
-2. Input::Init()
-3. RendererAPI::Init()         ← 创建 OpenGLRendererAPI 等
-4. ImGuiLayer 创建并 PushLayer
-5. （用户）Renderer2D::Init()  ← 应在首次绘制前、窗口创建后调用
-```
+### 3.1 后端选择
 
-**说明**：`Renderer2D::Init()` 由用户 Layer 在 `OnAttach` 中调用，或由 Application 在构造末尾调用。必须在 `RendererAPI::Init()` 之后、首次 `BeginScene` 之前执行。
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| **GraphicsBackend** | `Platform/Backend/GraphicsBackend.h/.cpp` | 枚举 `OpenGL_GLFW` 等；`GetGraphicsBackend()` 供各工厂分支使用（可读环境变量）。 |
 
----
+### 3.2 渲染上下文与 API 抽象
 
-## 七、模块职责与调用关系
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| **RenderContext** | `Platform/Render/RenderContext.h/.cpp` | `Init()` → `RendererAPI::Init()`；`Shutdown()`；`GetAPI()`；`SetCurrentWindow(Window*)`；`SwapBuffers()`（转发到当前 Window）。保管 `s_CurrentWindow`。 |
+| **RendererAPI** | `Platform/Render/RendererAPI.h` + `.cpp` | 抽象接口：清屏（SetClearColor、Clear）、绘制（DrawIndexed）、状态（SetDepthTest、SetBlend、SetCullFace、SetViewport）、RenderPass（BeginRenderPass、EndRenderPass）。静态 `Init()`/`Shutdown()`/`Get()` 根据 GraphicsBackend 创建具体实现（如 OpenGLRendererAPI）。 |
 
-| 模块 | 职责 | 被谁调用 | 调用谁 |
-|------|------|----------|--------|
-| **Application** | 主循环、场景注册/激活、清屏、收集 SubmitTo、Sort、Flush | EntryPoint | RendererAPI、LayerStack、RenderQueue、Scene、Window |
-| **Layer** | Phase1 OnUpdate 逻辑；Phase2 SubmitTo 从激活场景提取归属本层实体入队 | Application | Application::GetActivatedScenes、Camera |
-| **Scene** | 管理 SceneEntity；OnUpdate 执行 ECS/逻辑（仅状态，不渲染） | SceneLayer::OnUpdate、Application（注册） | SceneEntity |
-| **SceneEntity** | 变换与 Mesh/Sprite 组件；GetRenderLayer() 决定由哪一层提交 | Scene、SceneLayer::SubmitTo | - |
-| **RenderQueue** | 收集命令；Sort（Layer→Material→深度/透明 Back-to-Front）；Flush2D/Flush3D | Application、IDrawable | Renderer2D、Renderer3D |
-| **RendererAPI** | 清屏、DrawIndexed、状态 | Application、Renderer2D/3D | Backends（OpenGL 等） |
+### 3.3 资源抽象与工厂
 
----
+所有资源均为抽象基类 + 静态 `Create*` 工厂；实现位于 Backends，工厂在 Platform 的 .cpp 中按 `GetGraphicsBackend()` 分支。
 
-## 八、未来扩展（可选）
+| 抽象 | 头文件 | 工厂方法 | 职责 |
+|------|--------|----------|------|
+| **Shader** | `Platform/Render/Resources/Shader.h` | `Create(vs, fs)`、`CreateDefault2D()`、`CreateDefault3D()` | Bind/Unbind；SetMat4/SetFloat4/SetFloat3/SetFloat/SetInt。 |
+| **VertexArray** | `Resources/VertexArray.h` | `Create()` | Bind/Unbind；AddVertexBuffer、SetIndexBuffer；GetVertexBuffers/GetIndexBuffer。 |
+| **VertexBuffer** | `Resources/VertexBuffer.h` | `Create(size)`、`Create(data, size)` | Bind/Unbind；SetData。 |
+| **IndexBuffer** | `Resources/IndexBuffer.h` | `Create(indices, count)` | Bind/Unbind；GetCount。 |
+| **Texture2D** | `Resources/Texture2D.h` | `Create(w, h, data)`、`CreateFromFile(path)` | GetWidth/Height/GetRendererID；SetData；Bind(slot)。 |
+| **Framebuffer** | `Platform/Render/Framebuffer.h` | `Create(FramebufferSpec)` | Bind/Unbind；Resize；GetColorAttachmentRendererID；GetSpec。 |
+| **Pipeline** | `Platform/Render/Pipeline.h` | `Create()` | SetShader/SetVertexArray、SetDepthTest/SetBlend/SetCullFace；Bind；DrawIndexed。 |
 
-- **Render passes**：若需多 pass，可在 Application 内对 RenderQueue 分 pass 或扩展 Layer 提交接口。
-- **Culling**：在 Sort 前按相机视锥体剔除；**Sorting** 已由 RenderQueue::Sort（不透明/透明）完成；**Batch** 可合并同材质绘制。
+### 3.4 平台兼容层保管的数据
 
----
-
-## 九、灰屏排查要点（流程梳理）
-
-若窗口仅显示清屏色（灰/青）而无几何体，按下列顺序排查：
-
-1. **OpenGL 上下文与深度缓冲**
-   - 必须请求 **深度缓冲**（`GLFW_DEPTH_BITS`），否则 `Clear(ClearDepth)` 与深度测试无效。
-   - 建议同时请求 **OpenGL 3.3**（`GLFW_CONTEXT_VERSION_MAJOR/MINOR`），使用 `GLFW_OPENGL_ANY_PROFILE` 避免 Core Profile 在某些环境导致创建失败；这样可保证有可用深度缓冲。
-
-2. **层栈与相机**
-   - 取相机时使用 **第一个** `IProvidesCamera` 的 Layer 的 `GetCamera()`。若 Example3D 在 ImGui 之后入栈，则不会被当作主相机。
-   - 当前约定：Application 先 `PushOverlay(ImGuiLayer)`，用户再 `PushLayer(Example3D)`，故 Example3D 为层 0、先被遍历，其相机被使用。
-
-3. **提交与 Flush**
-   - 只有实现 **IDrawable** 的 Layer 才会在遍历时被 `SubmitTo(RenderQueue)`。
-   - 3D 几何由 **SubmitMesh** 入队，在 **Flush3D()** 中通过 `Renderer3D::Submit(VAO, indexCount, transform, color)` 绘制；2D 由 **Flush2D()** 的 **DrawQuad** 绘制。
-   - 若 SceneLayer 的 Scene 无实体、或实体无 MeshComponent，则 Flush3D 不会绘制任何东西。
-
-4. **背面剔除**
-   - `SetCullFace(true, true)` 表示剔除“背面”、正面为 CCW。若立方体三角形绕序与预期相反，所有面可能被剔除导致灰屏。可暂时 **SetCullFace(false, true)** 验证；若出现几何再修正网格绕序并恢复剔除。
-
-5. **顶点布局与 Shader**
-   - 默认 2D/3D Shader 要求：`location 0 = vec3 a_Position`，`location 1 = vec4 a_Color`，stride 7 floats。VAO 的 `AddVertexBuffer` 须按此布局设置 attribute 0 和 1。
-
-6. **架构差异：为何“旧版可画、新版灰屏”**
-   - **旧版**：Layer 在 **OnUpdate 内直接**调用 `Renderer2D::BeginScene(m_Camera)` → `DrawQuad(...)` → `EndScene()`，即“谁画谁绑相机、同一帧内立即绘制”，无统一队列。
-   - **新版**：Application 先收集所有 IDrawable 的 **SubmitTo(queue)**，再**统一**取第一个 IProvidesCamera、一次 **BeginScene(cam)** 后 **Flush2D/Flush3D**。若在**仅有 3D 命令**时仍先调用 **Renderer2D::BeginScene** 再 Flush3D，会先绑定 2D 着色器与 2D 状态，再切到 3D；若存在全局/管线状态未正确隔离，会导致 3D 不绘制或灰屏。
-   - **修复**：仅当 `Has2DCommands()` 时执行 `Renderer2D::BeginScene`/Flush2D/EndScene；仅当 `Has3DCommands()` 且相机为 PerspectiveCamera 时执行 `Renderer3D::BeginScene`/Flush3D/EndScene，避免无 2D 时绑定 2D 着色器干扰 3D。
+| 所有者 | 数据 | 说明 |
+|--------|------|------|
+| **RenderContext** | `s_CurrentWindow` | 用于 SwapBuffers。 |
+| **RendererAPI** | `s_API`（单例实现指针） | Init 时按后端创建，Shutdown 时释放。 |
+| **资源类** | 无全局状态 | 具体资源对象由调用方或 Renderer2D/Renderer3D 持有。 |
 
 ---
 
-## 十、依赖方向（禁止反向依赖）
+## 四、底层实现部分（Backends/OpenGL_GLFW/）
 
-```
-Application (Core)
-    │
-    ├──► RendererAPI (Platform)     Application 可调用 RendererAPI
-    │         ▲
-    │         │ 实现
-    │    Backends/OpenGL_GLFW
-    │
-    └──► Layer → Scene / IDrawable → RenderQueue
-             │
-             └──► Application 调用 RenderQueue::Flush2D/Flush3D → Renderer2D/Renderer3D → RendererAPI
-```
+实现 Platform 定义的渲染接口，直接调用 OpenGL（glad）与 GLFW。
 
-**原则**：Renderer 层不包含 Platform/Backends 头文件；通过 RendererAPI 等抽象接口与底层通信。
+### 4.1 实现类与对应抽象
 
----
+| 实现类 | 实现的抽象 | 说明 |
+|--------|------------|------|
+| **OpenGLRendererAPI** | RendererAPI | glClearColor、glClear、glDrawElements、深度/混合/背面剔除、glViewport、FBO 绑定。 |
+| **OpenGLShader** | Shader | 编译 vs/fs，glUseProgram，uniform 设置。 |
+| **OpenGLVertexArray** | VertexArray | VAO + 管理 VBO/IBO 绑定与布局。 |
+| **OpenGLVertexBuffer** | VertexBuffer | VBO，glBufferData。 |
+| **OpenGLIndexBuffer** | IndexBuffer | EBO，glBufferData。 |
+| **OpenGLTexture2D** | Texture2D | 2D 纹理，创建/绑定/上传。 |
+| **OpenGLFramebuffer** | Framebuffer | FBO，颜色/深度附件，Resize。 |
+| **OpenGLPipeline** | Pipeline | 捆绑 Shader + VertexArray + 状态，Bind 后 DrawIndexed。 |
 
-## 十、对外接口（Renderer 模块）
+### 4.2 底层层保管的数据
 
-### 10.1 统一头文件
-
-```cpp
-#include "Renderer/RendererModule.h"
-```
-
-包含：`Renderer`、`Camera`、`Renderer2D`、`Renderer3D`、`Scene`、`Material`。
-
-### 10.2 初始化与关闭
-
-- **Renderer::Init()**：由 `Application` 在 `RendererAPI::Init()` 之后调用（已接入 `Application` 构造）。
-- **Renderer::Shutdown()**：由 `Application` 析构调用。
-
-### 10.3 可绘制层写法（Layer 内）
-
-Layer 实现 **IDrawable**（及可选 **IProvidesCamera**）：逻辑在 OnUpdate，提交在 SubmitTo；Application 统一收集队列后 Sort 并 Flush。简单示例（直接提交四边形）或持有 Scene 并 `scene->SubmitTo(queue)`，见 SandBox Example3DLayer。
-
-```cpp
-class MyLayer : public Ehu::Layer, public Ehu::IDrawable, public Ehu::IProvidesCamera {
-    void OnUpdate(const Ehu::TimeStep& ts) override { /* 仅逻辑，不调用 BeginScene/Submit/EndScene */ }
-    void SubmitTo(Ehu::RenderQueue& queue) const override {
-        queue.SubmitQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.8f, 0.2f, 0.3f, 1.0f });
-    }
-    Ehu::Camera* GetCamera() const override { return &m_Camera; }
-};
-```
-
-- **Sorting**：RenderQueue::Sort() 不透明按 LayerIndex → MaterialKey → SortKey 升序（Front-to-Back），透明按 LayerIndex → SortKey 降序（Back-to-Front）；Flush 时透明段自动 SetBlend(true)。
-
-### 10.4 按需包含
-
-若只需部分接口，可单独包含：
-
-- `Renderer/Renderer.h` — Renderer::Init / Shutdown
-- `Renderer/Camera/Camera.h` — OrthographicCamera、PerspectiveCamera
-- `Renderer/Drawable.h` — IDrawable、IProvidesCamera
-- `Renderer/RenderQueue.h` — RenderQueue、DrawCommand2D/3D
-- `Renderer/Renderer2D.h`、`Renderer/Renderer3D.h` — 2D/3D 渲染
-- `Renderer/SceneLayer.h` — SceneLayer（引擎提供的场景渲染层）
-- `Scene/Scene.h` — Scene、SceneNode（场景模块，纯数据）
-- `Scene/SceneEntity.h` — SceneEntity、MeshComponent、SpriteComponent
-- `Renderer/Material/Material.h` — Material、MaterialProperties
+- 每个 **OpenGL*** 对象持有对应的 GL 句柄（program、VAO、VBO、EBO、texture、FBO 等）。
+- **OpenGLRendererAPI** 无持久数据，仅封装一次调用。
+- 默认 2D/3D Shader 的源码或编译结果由 **OpenGLShader** 持有；几何由 **Renderer2D** 在 Init 时通过 `VertexArray::Create()` 等得到的是 OpenGL 实现，数据在 GPU 缓冲中。
 
 ---
 
-## 十一、数据流（简要）
+## 五、工作流程
 
-```
-Phase1: Layer::OnUpdate → SceneLayer 对 GetActivatedScenes() 逐 scene->OnUpdate(timestep)
-Phase2: Layer::SubmitTo → SceneLayer 对激活场景中 GetRenderLayer()==this 的实体打包入 queue
-Phase3: queue.Sort()（Layer→MaterialKey→深度/透明 Back-to-Front）→ BeginScene(cam) → Flush2D/Flush3D → EndScene()
-```
+### 5.1 初始化顺序（Application 构造）
+
+1. `Window::Create()` → 窗口与 OpenGL 上下文（由 Backend 创建）。
+2. `Input::Init()` → 按 GraphicsBackend 初始化输入。
+3. `RenderContext::Init()` → `RendererAPI::Init()` → 创建 OpenGLRendererAPI。
+4. `RenderContext::SetCurrentWindow(m_Window.get())` → 供后续 SwapBuffers 使用。
+5. `Renderer::Init()` → `Renderer2D::Init()`（SceneData、默认 2D Shader、四边形 VAO/VBO/IBO）→ `Renderer3D::Init()`（SceneData、默认 3D Shader）。
+6. 创建 `RenderQueue`（Application 持有）。
+7. `ImGuiLayer(GetGraphicsBackend())` 并压入层栈。
+
+### 5.2 每帧渲染流程（Application::Run 主循环）
+
+1. **准备帧缓冲与视口**  
+   `RenderContext::GetAPI().SetViewport(...)` → `BeginRenderPass(nullptr)` → `SetClearColor` → `Clear(ClearColor|ClearDepth)`。
+
+2. **逻辑更新**  
+   遍历 LayerStack，`layer->OnUpdate(m_TimeStep)`。
+
+3. **收集绘制命令**  
+   `m_RenderQueue->Clear()`；遍历 Layer，若为 `IDrawable` 则 `SetCurrentLayerIndex` 后 `SubmitTo(*m_RenderQueue)`（Layer 内部可提交 2D Quad、3D Mesh 等）。
+
+4. **排序**  
+   `m_RenderQueue->Sort()`：2D/3D 分别按不透明/透明排序（层、相机、材质键、深度）。
+
+5. **全局状态**  
+   `SetDepthTest(true)`、`SetCullFace(false, true)`（可由后续按需覆盖）。
+
+6. **按相机统一提交**  
+   `m_RenderQueue->FlushAll()`：  
+   - 收集本帧所有出现过的 `ViewCamera`；  
+   - 对每个相机：若有 3D 命令则 `Renderer3D::BeginScene(cam)` → 不透明/透明分别 `Renderer3D::Submit(...)` → `Renderer3D::EndScene()`；若有 2D 命令则 `Renderer2D::BeginScene(cam)` → 不透明/透明分别 `Renderer2D::DrawQuad(...)` → `Renderer2D::EndScene()`。
+
+7. **ImGui**  
+   `m_ImGuiLayer->Begin()` → 各层 `OnImGuiRender()` → `m_ImGuiLayer->End()`。
+
+8. **呈现**  
+   `m_Window->OnUpdate()`（通常含交换缓冲）；或由 RenderContext 在别处调用 `SwapBuffers()`。
+
+### 5.3 数据流小结
+
+- **Layer**：实现 IDrawable，在 SubmitTo 中根据场景/逻辑向 RenderQueue 提交 DrawCommand2D / DrawCommand3D（含 position、size、color、VAO、transform、sortKey、ViewCamera 等）。
+- **RenderQueue**：保管本帧所有 2D/3D 命令及排序后的下标；FlushAll 只读这些命令，按相机分批调用 Renderer2D/Renderer3D。
+- **Renderer2D / Renderer3D**：保管当前场景的 ViewProjection 与默认 Shader；每帧由 FlushAll 先 BeginScene(cam) 写入 ViewProjection，再多次 DrawQuad/Submit 使用同一相机与 Shader，最后 EndScene。
+- **RendererAPI**：不保管场景数据，只执行 Clear、DrawIndexed、状态与 RenderPass；具体 GL 状态与 FBO 由 OpenGL 实现持有。
+
+#### 数据如何流向底层、变为画面
+
+从“逻辑侧的一次绘制请求”到“屏幕像素”的完整链路如下。
+
+1. **命令下沉到渲染器**  
+   FlushAll 按相机、按排序顺序，对每条命令调用 `Renderer2D::DrawQuad(...)` 或 `Renderer3D::Submit(VAO, count, transform, color)`。此时数据仍是“场景空间”的：位置、尺寸、变换矩阵、颜色、以及要用的几何（2D 用内置四边形 VAO，3D 用命令里带的 VAO）。
+
+2. **着色器与 uniform 写入**  
+   Renderer2D/3D 在 BeginScene 时已绑定默认 Shader 并上传 `u_ViewProjection`；每次 DrawQuad/Submit 时再上传本图元的 `u_Transform`、`u_Color`。底层（如 OpenGLShader）把这些 uniform 通过 `glUniform*` 写入当前 GL program，供管线中顶点/片段着色器使用。
+
+3. **几何绑定与 DrawIndexed**  
+   Renderer2D/3D 在每次绘制前绑定对应的 VertexArray（2D 为四边形 VAO，3D 为命令中的 VAO），然后调用 `RendererAPI::Get().DrawIndexed(vertexArray, indexCount)`。平台层只做抽象调用；底层（如 OpenGLRendererAPI）根据当前绑定的 VAO 得到 VBO/EBO，最终发出 `glDrawElements(GL_TRIANGLES, count, ...)`。此时：
+   - **顶点数据**（位置、颜色等）已在 Init 或资源创建时上传到 GPU（VBO），VAO 记录布局；
+   - **索引**在 EBO 中，DrawIndexed 的 count 决定从 EBO 里读多少个索引、画多少个三角形。
+
+4. **GPU 管线执行**  
+   驱动收到 DrawCall 后，GPU 按顶点着色器 → 光栅化 → 片段着色器 执行：顶点着色器用 `u_ViewProjection`、`u_Transform` 与顶点属性算出裁剪空间坐标；光栅化生成像素片段；片段着色器用 `u_Color` 等写出最终颜色，写入当前绑定的**帧缓冲**（默认即窗口的后缓冲，或 BeginRenderPass 指定的 FBO）。
+
+5. **帧缓冲与呈现**  
+   整帧中所有 DrawCall 都画到同一帧缓冲（默认是窗口的 back buffer）。ImGui 绘制同样写入该缓冲。帧结束由 `Window::OnUpdate()` 或 `RenderContext::SwapBuffers()` 执行前后缓冲交换（如 `glfwSwapBuffers`），把刚画完的 back buffer 变为用户可见的前缓冲，下一帧的绘制目标变为新的 back buffer。  
+   因此：**数据流** = Layer 提交命令 → RenderQueue 排序 → Renderer2D/3D 写 uniform、绑 VAO、调 DrawIndexed → RendererAPI/OpenGL 发 glDrawElements → GPU 执行管线写帧缓冲 → 交换缓冲后变为画面。
 
 ---
 
-## 十二、文档索引
+## 六、小结表
 
-| 文件 | 内容 |
-|------|------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 引擎整体模块依赖与分层 |
-| [TODO.md](TODO.md) | 渲染相关待办（Render API、Renderer、Entity、Queue、Sorting） |
-| [README.md](README.md) | 项目说明与构建 |
+| 层次 | 保管的数据 | 工作流角色 |
+|------|------------|------------|
+| **平台无关** | Renderer2D/3D 的 SceneData、默认 Shader、2D 四边形 VAO；RenderQueue 的命令与排序结果 | 提交接口、排序、按相机 Flush |
+| **平台兼容** | RenderContext 的当前窗口；RendererAPI 单例指针；资源无全局状态 | 抽象 API、资源工厂、Init/Shutdown/SwapBuffers |
+| **底层实现** | 各 OpenGL* 对象的 GL 句柄（program、VAO、VBO、EBO、FBO、Texture 等） | 执行清屏、绘制、状态与 RenderPass |
 
----
-
-*Renderer 层调度与 Render API（VertexBuffer、Shader、VertexArray、DrawIndexed）已实现并接入 Application 与 SandBox 示例。*
+新增图形后端时：在 `Platform/Backend/GraphicsBackend` 增加枚举与分支；在 `RendererAPI::Init`、各资源 `Create*`、Pipeline、Framebuffer、Window、Input、ImGui 的工厂中增加分支；在 `Backends/` 下新增目录并实现对应接口，保持 Renderer 与 RenderQueue 代码不变。

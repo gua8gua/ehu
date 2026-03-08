@@ -12,6 +12,7 @@ set(PLATFORM_SOURCES
 	Render/Resources/Shader.cpp
 	Render/Resources/VertexArray.cpp
 	Render/Resources/Texture2D.cpp
+	Render/UniformBuffer.cpp
 )
 set(PLATFORM_HEADERS
 	Backend/GraphicsBackend.h
@@ -26,6 +27,8 @@ set(PLATFORM_HEADERS
 	Render/Resources/Shader.h
 	Render/Resources/VertexArray.h
 	Render/Resources/Texture2D.h
+	Render/Resources/SubTexture2D.h
+	Render/UniformBuffer.h
 )
 target_sources(EhuLib PRIVATE ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

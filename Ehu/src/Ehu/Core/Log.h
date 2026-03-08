@@ -2,6 +2,7 @@
 
 #include "ehupch.h"
 #include "Core.h"
+#include "Ref.h"
 #include "spdlog/spdlog.h"
 
 namespace Ehu {
@@ -9,11 +10,11 @@ namespace Ehu {
 	class EHU_API Log {
 	public:
 		static void Init();
-		static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+		static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+		static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 	private:
-		static std::shared_ptr<spdlog::logger> s_CoreLogger;
-		static std::shared_ptr<spdlog::logger> s_ClientLogger;
+		static Ref<spdlog::logger> s_CoreLogger;
+		static Ref<spdlog::logger> s_ClientLogger;
 	};
 
 }

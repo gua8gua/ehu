@@ -1,68 +1,37 @@
 #include "ehupch.h"
 #include "Scene.h"
+#include "ECS/Components.h"
 #include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
-#include <glm/gtx/euler_angles.hpp>
 #include <algorithm>
 
 namespace Ehu {
 
-	// --- Scene ---
 	Scene::~Scene() {
-		if (m_MainCamera && std::find(m_Cameras.begin(), m_Cameras.end(), m_MainCamera) == m_Cameras.end())
-			m_MainCamera = nullptr;
-		for (SceneCameraEntity* c : m_Cameras)
-			delete c;
-		m_Cameras.clear();
-		m_MainCamera = nullptr;
-
-		for (SceneEntity* e : m_Entities)
-			delete e;
-		m_Entities.clear();
+		// World 析构时自动释放所有组件；主相机 Entity 不再单独 delete
 	}
 
-	void Scene::AddEntity(SceneEntity* entity) {
-		if (entity && std::find(m_Entities.begin(), m_Entities.end(), entity) == m_Entities.end())
-			m_Entities.push_back(entity);
+	Entity Scene::CreateEntity() {
+		Entity e = m_World.CreateEntity();
+		m_World.AddComponent(e, IdComponent{ UUID() });
+		m_World.AddComponent(e, TagComponent{});
+		return e;
 	}
 
-	void Scene::RemoveEntity(SceneEntity* entity) {
-		auto it = std::find(m_Entities.begin(), m_Entities.end(), entity);
-		if (it != m_Entities.end()) {
-			delete *it;
-			m_Entities.erase(it);
-		}
+	void Scene::DestroyEntity(Entity e) {
+		m_World.DestroyEntity(e);
+		if (e == m_MainCameraEntity)
+			m_MainCameraEntity = Entity{};
 	}
 
-	void Scene::AddCamera(SceneCameraEntity* camera) {
-		if (!camera) return;
-		if (std::find(m_Cameras.begin(), m_Cameras.end(), camera) == m_Cameras.end())
-			m_Cameras.push_back(camera);
-		if (!m_MainCamera)
-			m_MainCamera = camera;
+	Camera* Scene::GetMainCamera() const {
+		if (!m_World.IsValid(m_MainCameraEntity)) return nullptr;
+		const CameraComponent* cc = m_World.GetComponent<CameraComponent>(m_MainCameraEntity);
+		return cc ? cc->Camera : nullptr;
 	}
 
-	void Scene::RemoveCamera(SceneCameraEntity* camera) {
-		auto it = std::find(m_Cameras.begin(), m_Cameras.end(), camera);
-		if (it != m_Cameras.end()) {
-			if (m_MainCamera == *it)
-				m_MainCamera = nullptr;
-			delete *it;
-			m_Cameras.erase(it);
-		}
-		if (!m_MainCamera && !m_Cameras.empty())
-			m_MainCamera = m_Cameras.front();
-	}
-
-	void Scene::SetMainCamera(SceneCameraEntity* camera) {
-		if (!camera) {
-			m_MainCamera = nullptr;
-			return;
-		}
-		if (std::find(m_Cameras.begin(), m_Cameras.end(), camera) == m_Cameras.end())
-			m_Cameras.push_back(camera);
-		m_MainCamera = camera;
+	void Scene::OnUpdate(const TimeStep& timestep) {
+		(void)timestep;
+		// CameraSync 在 SceneLayer::SubmitTo 中、提取前对每个 Scene 的 World 执行
 	}
 
 	// --- SceneNode ---
@@ -96,30 +65,6 @@ namespace Ehu {
 	glm::mat4 SceneNode::GetWorldTransform() const {
 		glm::mat4 parentWorld = m_Parent ? m_Parent->GetWorldTransform() : glm::mat4(1.0f);
 		return parentWorld * GetLocalTransform();
-	}
-
-	// --- SceneEntity ---
-	void SceneEntity::SetRotation(const glm::vec3& eulerRadians) {
-		m_Rotation = glm::quat_cast(glm::eulerAngleXYZ(eulerRadians.x, eulerRadians.y, eulerRadians.z));
-		m_TransformDirty = true;
-	}
-
-	void SceneEntity::SetTransform(const glm::mat4& t) {
-		glm::vec3 skew;
-		glm::vec4 persp;
-		if (glm::decompose(t, m_Scale, m_Rotation, m_Position, skew, persp))
-			m_TransformDirty = false;
-		m_Transform = t;
-	}
-
-	const glm::mat4& SceneEntity::GetTransform() const {
-		if (m_TransformDirty) {
-			m_Transform = glm::translate(glm::mat4(1.0f), m_Position)
-				* glm::mat4_cast(m_Rotation)
-				* glm::scale(glm::mat4(1.0f), m_Scale);
-			m_TransformDirty = false;
-		}
-		return m_Transform;
 	}
 
 } // namespace Ehu

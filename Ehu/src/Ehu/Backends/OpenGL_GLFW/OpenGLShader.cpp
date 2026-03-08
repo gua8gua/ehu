@@ -33,6 +33,40 @@ namespace Ehu {
 		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
 	}
 
+	// 带 UV 与纹理采样的 2D 着色器：position(3) + color(4) + texCoord(2)
+	static const char* s_DefaultTextured2DVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec3 a_Position;
+		layout(location = 1) in vec4 a_Color;
+		layout(location = 2) in vec2 a_TexCoord;
+		uniform mat4 u_ViewProjection;
+		uniform mat4 u_Transform;
+		uniform vec2 u_UVMin;
+		uniform vec2 u_UVMax;
+		out vec4 v_Color;
+		out vec2 v_TexCoord;
+		void main() {
+			v_Color = a_Color;
+			v_TexCoord = mix(u_UVMin, u_UVMax, a_TexCoord);
+			gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
+		}
+	)";
+	static const char* s_DefaultTextured2DFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		in vec2 v_TexCoord;
+		uniform sampler2D u_Texture;
+		uniform vec4 u_Color;
+		out vec4 FragColor;
+		void main() {
+			FragColor = texture(u_Texture, v_TexCoord) * v_Color * u_Color;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateDefault2DTextured() {
+		return new OpenGLShader(s_DefaultTextured2DVertexSrc, s_DefaultTextured2DFragmentSrc);
+	}
+
 	Shader* OpenGLShader::CreateDefault3D() {
 		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
 	}
@@ -41,6 +75,7 @@ namespace Ehu {
 		uint32_t vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
 		uint32_t fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
 
+		// 创建着色器程序
 		m_RendererID = glCreateProgram();
 		glAttachShader(m_RendererID, vs);
 		glAttachShader(m_RendererID, fs);
@@ -113,6 +148,10 @@ namespace Ehu {
 
 	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& value) {
 		glUniform3f(GetUniformLocation(name), value.x, value.y, value.z);
+	}
+
+	void OpenGLShader::SetFloat2(const std::string& name, const glm::vec2& value) {
+		glUniform2f(GetUniformLocation(name), value.x, value.y);
 	}
 
 	void OpenGLShader::SetFloat(const std::string& name, float value) {
