@@ -20,4 +20,19 @@ namespace Ehu {
 		return oss.str();
 	}
 
+	UUID UUID::FromString(const std::string& str) {
+		if (str.size() != 16) return UUID(0);
+		uint64_t v = 0;
+		for (size_t i = 0; i < 16; ++i) {
+			char c = str[i];
+			uint64_t d = 0;
+			if (c >= '0' && c <= '9') d = c - '0';
+			else if (c >= 'a' && c <= 'f') d = c - 'a' + 10;
+			else if (c >= 'A' && c <= 'F') d = c - 'A' + 10;
+			else return UUID(0);
+			v = (v << 4) | d;
+		}
+		return UUID(v);
+	}
+
 } // namespace Ehu

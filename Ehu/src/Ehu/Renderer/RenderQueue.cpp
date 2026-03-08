@@ -140,6 +140,9 @@ namespace Ehu {
 	}
 
 	void RenderQueue::FlushAll() const {
+		m_LastFrameStats = RenderStats{};
+
+		// 获取所有不同的相机
 		std::vector<Camera*> cameras;
 		cameras.reserve(8);
 		auto pushUnique = [&cameras](Camera* cam) {
@@ -153,9 +156,12 @@ namespace Ehu {
 		for (size_t i : m_SortedOpaque2D) pushUnique(m_Commands2D[i].ViewCamera);
 		for (size_t i : m_SortedTransparent2D) pushUnique(m_Commands2D[i].ViewCamera);
 
+
+		// 分相机绘制
 		auto& api = RendererAPI::Get();
 
 		for (Camera* cam : cameras) {
+			// 分3D和2D绘制
 			const bool has3D = std::any_of(m_SortedOpaque3D.begin(), m_SortedOpaque3D.end(), [&](size_t i) { return m_Commands3D[i].ViewCamera == cam; })
 				|| std::any_of(m_SortedTransparent3D.begin(), m_SortedTransparent3D.end(), [&](size_t i) { return m_Commands3D[i].ViewCamera == cam; });
 			const bool has2D = std::any_of(m_SortedOpaque2D.begin(), m_SortedOpaque2D.end(), [&](size_t i) { return m_Commands2D[i].ViewCamera == cam; })
@@ -163,18 +169,23 @@ namespace Ehu {
 
 			if (has3D) {
 				if (auto* pCam = dynamic_cast<PerspectiveCamera*>(cam)) {
+					// 分不透明和透明绘制
 					Renderer3D::BeginScene(*pCam);
 					api.SetBlend(false);
 					for (size_t i : m_SortedOpaque3D) {
 						const auto& cmd = m_Commands3D[i];
 						if (cmd.ViewCamera != cam) continue;
 						Renderer3D::Submit(cmd.VAO, cmd.IndexCount, cmd.Transform, cmd.Color);
+						m_LastFrameStats.DrawCalls3D++;
+						m_LastFrameStats.Triangles3D += cmd.IndexCount / 3;
 					}
 					api.SetBlend(true);
 					for (size_t i : m_SortedTransparent3D) {
 						const auto& cmd = m_Commands3D[i];
 						if (cmd.ViewCamera != cam) continue;
 						Renderer3D::Submit(cmd.VAO, cmd.IndexCount, cmd.Transform, cmd.Color);
+						m_LastFrameStats.DrawCalls3D++;
+						m_LastFrameStats.Triangles3D += cmd.IndexCount / 3;
 					}
 					api.SetBlend(false);
 					Renderer3D::EndScene();
@@ -188,12 +199,16 @@ namespace Ehu {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
 					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
+					m_LastFrameStats.DrawCalls2D++;
+					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(true);
 				for (size_t i : m_SortedTransparent2D) {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
 					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
+					m_LastFrameStats.DrawCalls2D++;
+					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(false);
 				Renderer2D::EndScene();

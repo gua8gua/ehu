@@ -19,6 +19,8 @@ namespace Ehu {
 		bool operator!=(const UUID& other) const { return m_UUID != other.m_UUID; }
 
 		std::string ToString() const;
+		/// 从 16 位十六进制字符串解析，失败返回 UUID(0)
+		static UUID FromString(const std::string& str);
 
 	private:
 		uint64_t m_UUID;

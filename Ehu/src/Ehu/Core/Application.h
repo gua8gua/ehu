@@ -37,6 +37,13 @@ namespace Ehu {
 		/// 当前已激活的场景列表（供 Layer 在逻辑 Tick 与 Extract 阶段使用）
 		const std::vector<Scene*>& GetActivatedScenes() const;
 
+		RenderQueue* GetRenderQueue() { return m_RenderQueue.get(); }
+		const RenderQueue* GetRenderQueue() const { return m_RenderQueue.get(); }
+		/// 上一帧 delta 时间（秒），供调试/统计用
+		float GetDeltaTime() const { return m_TimeStep.GetSeconds(); }
+		/// 估算 FPS（1/delta），delta 为 0 时返回 0
+		float GetFPS() const { float dt = m_TimeStep.GetSeconds(); return dt > 0.0f ? 1.0f / dt : 0.0f; }
+
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);

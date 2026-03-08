@@ -13,6 +13,7 @@
 #include "Renderer/Renderer2D.h"
 #include "Renderer/Renderer3D.h"
 #include "Events/ApplicationEvent.h"
+#include "ImGui/DebugLayer.h"
 #include "Scene/Scene.h"
 #include <chrono>
 #include <algorithm>
@@ -41,6 +42,7 @@ namespace Ehu {
 
 		m_ImGuiLayer = new ImGuiLayer(GetGraphicsBackend());
 		PushOverlay(m_ImGuiLayer);
+		PushOverlay(new DebugLayer());
 		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_push_overlay\",\"message\":\"PushOverlay done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 	}
 

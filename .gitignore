@@ -9,6 +9,7 @@ out/
 .idea/
 *.user
 *.suo
+.cursor/
 *.sln
 *.vcxproj*
 *.vcxproj.filters

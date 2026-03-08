@@ -23,6 +23,46 @@ namespace Ehu {
 			m_MainCameraEntity = Entity{};
 	}
 
+	Entity Scene::FindEntityByName(const std::string& name) const {
+		Entity found{};
+		m_World.Each<TagComponent>([&](Entity e, TagComponent& tag) {
+			if (tag.Name == name) {
+				found = e;
+			}
+		});
+		return found;
+	}
+
+	Entity Scene::FindEntityByUUID(UUID uuid) const {
+		Entity found{};
+		m_World.Each<IdComponent>([&](Entity e, IdComponent& idc) {
+			if (idc.Id == uuid) {
+				found = e;
+			}
+		});
+		return found;
+	}
+
+	Entity Scene::DuplicateEntity(Entity e) {
+		if (!m_World.IsValid(e)) return Entity{};
+		Entity neu = CreateEntity();
+		// IdComponent 已由 CreateEntity 赋新 UUID；仅覆盖 Tag 名称
+		if (const TagComponent* tc = m_World.GetComponent<TagComponent>(e)) {
+			TagComponent* dst = m_World.GetComponent<TagComponent>(neu);
+			if (dst) {
+				dst->Name = tc->Name.empty() ? "Copy" : tc->Name + " (Copy)";
+				dst->RenderLayer = tc->RenderLayer;
+			}
+		}
+		if (const TransformComponent* tr = m_World.GetComponent<TransformComponent>(e))
+			m_World.AddComponent(neu, *tr);
+		if (const SpriteComponent* sp = m_World.GetComponent<SpriteComponent>(e))
+			m_World.AddComponent(neu, *sp);
+		if (const MeshComponent* mc = m_World.GetComponent<MeshComponent>(e))
+			m_World.AddComponent(neu, *mc);
+		return neu;
+	}
+
 	Camera* Scene::GetMainCamera() const {
 		if (!m_World.IsValid(m_MainCameraEntity)) return nullptr;
 		const CameraComponent* cc = m_World.GetComponent<CameraComponent>(m_MainCameraEntity);

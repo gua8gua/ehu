@@ -3,6 +3,7 @@
 #include "ehupch.h"
 #include "Core/Core.h"
 #include "Core/TimeStep.h"
+#include "Core/UUID.h"
 #include "ECS/Entity.h"
 #include "ECS/World.h"
 #include <glm/glm.hpp>
@@ -68,6 +69,13 @@ namespace Ehu {
 		Entity CreateEntity();
 		void DestroyEntity(Entity e);
 		std::vector<Entity> GetEntities() const { return m_World.GetEntities(); }
+
+		/// 按 TagComponent.Name 查找第一个匹配实体，未找到返回无效 Entity（id==0）
+		Entity FindEntityByName(const std::string& name) const;
+		/// 按 IdComponent.Id 查找实体，未找到返回无效 Entity
+		Entity FindEntityByUUID(UUID uuid) const;
+		/// 复制实体及其可拷贝组件（Id 为新 UUID，Tag 可加后缀；不复制 CameraComponent）
+		Entity DuplicateEntity(Entity e);
 
 		void SetMainCamera(Entity e) { m_MainCameraEntity = e; }
 		Entity GetMainCameraEntity() const { return m_MainCameraEntity; }

@@ -49,12 +49,13 @@
 
 ## 三、场景与实体（Scene）
 
+**规范与约定**：见 [.cursor/rules/ehu-scene.mdc](../.cursor/rules/ehu-scene.mdc)（ECS/Scene/SceneLayer 职责、实体与组件、主相机、渲染提取、SceneNode、待办约定）。
 
-| 功能项                     | 说明                                                 | 状态   |
-| ----------------------- | -------------------------------------------------- | ---- |
-| **Scene / SceneEntity** | 场景图与实体已存在；可扩展按名/UUID 查找、实体复制                       | 部分完成 |
-| **组件与序列化**              | 组件化描述（Tag、Transform、Sprite、Camera 等）与场景序列化（如 YAML） | 待完成  |
-| **SceneSerializer**     | 场景保存/加载，与项目资源路径配合                                  | 待完成  |
+| 功能项                     | 说明                                                                 | 状态   |
+| ----------------------- | ------------------------------------------------------------------ | ---- |
+| **Scene / SceneEntity** | 场景图与实体已存在；按名查找（FindEntityByName）、按 UUID 查找（FindEntityByUUID）、实体复制（DuplicateEntity）已实现 | 已完成  |
+| **组件与序列化**              | 组件化描述（Tag、Transform、Sprite、Camera 等）；SceneSerializer 文本格式序列化 Id/Tag/Transform/Sprite | 部分完成 |
+| **SceneSerializer**     | 场景保存/加载（Serialize/Deserialize），路径与读写通过 FileSystem；主相机 UUID 保存与恢复               | 已完成  |
 
 
 ---
@@ -73,11 +74,12 @@
 
 ## 五、ImGui 与工具
 
+**规范与约定**：见 [.cursor/rules/ehu-imgui-tools.mdc](../.cursor/rules/ehu-imgui-tools.mdc)（ImGui 集成、事件阻塞、多视口暂缓、调试/统计面板约定）。
 
-| 功能项           | 说明                                             | 状态  |
-| ------------- | ---------------------------------------------- | --- |
-| **ImGui 多视口** | 当前禁用 ViewportsEnable 以避免清屏问题；若需多窗口可单独研究渲染路径    | 暂缓  |
-| **调试/统计面板**   | 帧率、Draw Call 数、渲染器统计等（可放在 ImGui 层或独立 Debug 模块） | 待完成 |
+| 功能项           | 说明                                                                 | 状态   |
+| ------------- | ------------------------------------------------------------------ | ---- |
+| **ImGui 多视口** | 当前禁用 ViewportsEnable 以避免清屏问题；若需多窗口可单独研究渲染路径                | 暂缓   |
+| **调试/统计面板**   | DebugLayer 已实现：FPS、Delta、Draw Calls 2D/3D、Triangles 2D/3D；Application 默认 PushOverlay(DebugLayer) | 已完成 |
 
 
 ---

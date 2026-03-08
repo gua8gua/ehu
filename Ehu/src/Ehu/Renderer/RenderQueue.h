@@ -35,6 +35,14 @@ namespace Ehu {
 		Camera* ViewCamera = nullptr;
 	};
 
+	/// 上一帧渲染统计（由 FlushAll 内更新，供调试面板读取）
+	struct EHU_API RenderStats {
+		uint32_t DrawCalls2D = 0;
+		uint32_t DrawCalls3D = 0;
+		uint32_t Triangles2D = 0;
+		uint32_t Triangles3D = 0;
+	};
+
 	/// 渲染队列：收集 2D/3D 绘制命令，排序后统一提交；支持不透明/透明分离与混合
 	class EHU_API RenderQueue {
 	public:
@@ -72,6 +80,9 @@ namespace Ehu {
 		/// 按 ViewCamera 分批 Begin/Flush/End（场景主相机）；没有主相机的命令不会被绘制
 		void FlushAll() const;
 
+		/// 上一帧的绘制统计（FlushAll 内更新）
+		const RenderStats& GetLastFrameStats() const { return m_LastFrameStats; }
+
 	private:
 		uint32_t m_CurrentLayerIndex = 0;
 		std::vector<DrawCommand2D> m_Commands2D;
@@ -80,6 +91,8 @@ namespace Ehu {
 		std::vector<size_t> m_SortedTransparent2D;
 		std::vector<size_t> m_SortedOpaque3D;
 		std::vector<size_t> m_SortedTransparent3D;
+
+		mutable RenderStats m_LastFrameStats;
 	};
 
 } // namespace Ehu
