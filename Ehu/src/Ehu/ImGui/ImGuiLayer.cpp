@@ -1,5 +1,6 @@
 #include "ehupch.h"
 #include "ImGuiLayer.h"
+#include "ImGuiWindowVisibility.h"
 #include "Core/Application.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -86,16 +87,18 @@ namespace Ehu {
 		// 将上一帧中移出主视口的浮动窗口拉回至最近边缘
 		SnapFloatingWindowsBackToViewport();
 
-		// 默认不显示 Demo，使中央节点透出 3D；通过菜单可打开
-		static bool showDemo = false;
+		// 顶部菜单栏：Window 下提供各窗口的打开/关闭
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("Window")) {
-				ImGui::MenuItem("ImGui Demo", nullptr, &showDemo);
+				ImGui::MenuItem("Stats", nullptr, &ImGuiWindowVisibility::ShowStats);
+				ImGui::MenuItem("Dashboard", "F3", &ImGuiWindowVisibility::ShowDashboard);
+				ImGui::Separator();
+				ImGui::MenuItem("ImGui Demo", nullptr, &ImGuiWindowVisibility::ShowImGuiDemo);
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
 		}
-		ImGui::ShowDemoWindow(&showDemo);
+		ImGui::ShowDemoWindow(&ImGuiWindowVisibility::ShowImGuiDemo);
 	}
 
 	void ImGuiLayer::SetDarkThemeColors() {

@@ -17,6 +17,15 @@ namespace Ehu {
 
 		void BeginRenderPass(Framebuffer* framebuffer = nullptr) override;
 		void EndRenderPass() override;
+
+		void BeginGpuTiming() override;
+		void EndGpuTiming() override;
+		float GetLastGpuTimeMs() const override;
+		uint64_t GetVramBytes() const override;
+
+	private:
+		uint32_t m_GpuTimeQuery = 0;
+		mutable float m_LastGpuTimeMs = -1.0f;
 	};
 
 } // namespace Ehu

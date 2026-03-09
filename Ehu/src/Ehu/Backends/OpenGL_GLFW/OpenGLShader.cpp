@@ -1,6 +1,7 @@
 #include "ehupch.h"
 #include "OpenGLShader.h"
 #include "Core/Log.h"
+#include "ImGui/DashboardStats.h"
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -121,11 +122,20 @@ namespace Ehu {
 		return id;
 	}
 
+	namespace {
+		uint32_t s_CurrentBoundProgram = 0;
+	}
+
 	void OpenGLShader::Bind() const {
+		if (s_CurrentBoundProgram != m_RendererID) {
+			s_CurrentBoundProgram = m_RendererID;
+			DashboardStats::Get().AddShaderSwitch();
+		}
 		glUseProgram(m_RendererID);
 	}
 
 	void OpenGLShader::Unbind() const {
+		s_CurrentBoundProgram = 0;
 		glUseProgram(0);
 	}
 

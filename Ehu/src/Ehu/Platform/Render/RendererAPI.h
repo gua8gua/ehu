@@ -2,6 +2,7 @@
 
 #include "ehupch.h"
 #include "Core/Core.h"
+#include <cstdint>
 
 namespace Ehu {
 
@@ -29,6 +30,14 @@ namespace Ehu {
 		/// 渲染通道：Begin 绑定 Framebuffer（nullptr=默认帧缓冲），End 解绑
 		virtual void BeginRenderPass(Framebuffer* framebuffer = nullptr) = 0;
 		virtual void EndRenderPass() = 0;
+
+		/// GPU 计时：Begin 在 Flush 前、End 在 Flush 后调用；下一帧 GetLastGpuTimeMs() 返回上一帧 GPU 耗时(ms)，不支持时返回 <0
+		virtual void BeginGpuTiming() {}
+		virtual void EndGpuTiming() {}
+		virtual float GetLastGpuTimeMs() const { return -1.0f; }
+
+		/// 当前 VRAM 占用（字节），不支持或不可用时返回 0
+		virtual uint64_t GetVramBytes() const { return 0; }
 
 		static void Init();
 		static void Shutdown();

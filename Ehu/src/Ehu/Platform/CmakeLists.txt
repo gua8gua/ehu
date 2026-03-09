@@ -1,6 +1,7 @@
 # 平台抽象层：后端选择、窗口/输入/渲染 API 接口与工厂
 set(PLATFORM_SOURCES
 	Backend/GraphicsBackend.cpp
+	MemoryStats.cpp
 	IO/Window.cpp
 	IO/Input.cpp
 	Render/RendererAPI.cpp
@@ -16,6 +17,7 @@ set(PLATFORM_SOURCES
 )
 set(PLATFORM_HEADERS
 	Backend/GraphicsBackend.h
+	MemoryStats.h
 	IO/Window.h
 	IO/Input.h
 	Render/RendererAPI.h

@@ -67,4 +67,44 @@ namespace Ehu {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void OpenGLRendererAPI::BeginGpuTiming() {
+		if (m_GpuTimeQuery == 0)
+			glGenQueries(1, &m_GpuTimeQuery);
+		if (m_GpuTimeQuery != 0)
+			glBeginQuery(GL_TIME_ELAPSED, m_GpuTimeQuery);
+	}
+
+	void OpenGLRendererAPI::EndGpuTiming() {
+		if (m_GpuTimeQuery != 0)
+			glEndQuery(GL_TIME_ELAPSED);
+	}
+
+	float OpenGLRendererAPI::GetLastGpuTimeMs() const {
+		if (m_GpuTimeQuery == 0) return -1.0f;
+		GLuint available = 0;
+		glGetQueryObjectuiv(m_GpuTimeQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+		if (available) {
+			GLuint64 elapsedNs = 0;
+			glGetQueryObjectui64v(m_GpuTimeQuery, GL_QUERY_RESULT, &elapsedNs);
+			m_LastGpuTimeMs = static_cast<float>(elapsedNs) / 1e6f;
+		}
+		return m_LastGpuTimeMs;
+	}
+
+	uint64_t OpenGLRendererAPI::GetVramBytes() const {
+		// NVIDIA: GL_NVX_gpu_memory_info (values in KB)
+#ifndef GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX
+		#define GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX 0x9048
+#endif
+#ifndef GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX
+		#define GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX 0x9049
+#endif
+		GLint totalKb = 0, availKb = 0;
+		glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &totalKb);
+		glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &availKb);
+		if (totalKb > 0 && availKb >= 0)
+			return static_cast<uint64_t>(totalKb - availKb) * 1024u;
+		return 0;
+	}
+
 } // namespace Ehu

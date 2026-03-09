@@ -1,5 +1,6 @@
 #include "ehupch.h"
 #include "DebugLayer.h"
+#include "ImGuiWindowVisibility.h"
 #include "Core/Application.h"
 #include "Renderer/RenderQueue.h"
 #include "imgui.h"
@@ -7,7 +8,25 @@
 namespace Ehu {
 
 	void DebugLayer::OnImGuiRender() {
-		ImGui::Begin("Stats");
+		using namespace ImGuiWindowVisibility;
+		if (!ShowStats) return;
+
+		// 再次打开时回到默认停靠位置（从关闭变为打开时强制位置）
+		{
+			static bool s_WasVisible = false;
+			bool justOpened = ShowStats && !s_WasVisible;
+			if (justOpened) {
+				float x, y;
+				GetDefaultWindowPos("Stats", x, y);
+				ImGui::SetNextWindowPos(ImVec2(x, y), ImGuiCond_Always);
+			}
+			s_WasVisible = ShowStats;
+		}
+
+		if (!ImGui::Begin("Stats", &ShowStats, ImGuiWindowFlags_None)) {
+			ImGui::End();
+			return;
+		}
 		Application& app = Application::Get();
 		float fps = app.GetFPS();
 		float dt = app.GetDeltaTime();

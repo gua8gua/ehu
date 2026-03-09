@@ -14,6 +14,10 @@
 #include "Renderer/Renderer3D.h"
 #include "Events/ApplicationEvent.h"
 #include "ImGui/DebugLayer.h"
+#include "ImGui/DashboardLayer.h"
+#include "ImGui/DashboardStats.h"
+#include "Core/Timer.h"
+#include "Platform/MemoryStats.h"
 #include "Scene/Scene.h"
 #include <chrono>
 #include <algorithm>
@@ -43,6 +47,7 @@ namespace Ehu {
 		m_ImGuiLayer = new ImGuiLayer(GetGraphicsBackend());
 		PushOverlay(m_ImGuiLayer);
 		PushOverlay(new DebugLayer());
+		PushOverlay(new DashboardLayer());
 		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_push_overlay\",\"message\":\"PushOverlay done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 	}
 
@@ -98,16 +103,23 @@ namespace Ehu {
 			float timeSec = duration_cast<duration<float>>(steady_clock::now() - runStart).count();
 			m_TimeStep.Update(timeSec);
 
+			DashboardStats& dashStats = DashboardStats::Get();
+			dashStats.SnapshotRenderingCounters();  // 上一帧的纹理/着色器计数写入展示并清零
+			dashStats.GpuTimeMs = RenderContext::GetAPI().GetLastGpuTimeMs();
+
 			RenderContext::GetAPI().SetViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
 			RenderContext::GetAPI().BeginRenderPass(nullptr); // 绑定默认帧缓冲，保证 Clear 与 3D/2D 绘制到窗口
 			RenderContext::GetAPI().SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			RenderContext::GetAPI().Clear(RendererAPI::ClearColor | RendererAPI::ClearDepth);
 
+			Timer updateTimer;
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(m_TimeStep);
+			dashStats.UpdateMs = updateTimer.ElapsedMs();
 
 			m_RenderQueue->Clear();
 			uint32_t layerIndex = 0;
+			Timer submitTimer;
 			for (Layer* layer : m_LayerStack) {
 				if (IDrawable* d = dynamic_cast<IDrawable*>(layer)) {
 					m_RenderQueue->SetCurrentLayerIndex(layerIndex);
@@ -116,9 +128,41 @@ namespace Ehu {
 				layerIndex++;
 			}
 			m_RenderQueue->Sort();
+			dashStats.RenderSubmitMs = submitTimer.ElapsedMs();
+
 			RenderContext::GetAPI().SetDepthTest(true);
 			RenderContext::GetAPI().SetCullFace(false, true);
+			RenderContext::GetAPI().BeginGpuTiming();
 			m_RenderQueue->FlushAll();
+			RenderContext::GetAPI().EndGpuTiming();
+
+			// 写入仪表盘：Timing、来自 RenderQueue 的渲染统计、Active Entities
+			float dtMs = m_TimeStep.GetSeconds() * 1000.0f;
+			dashStats.FrameTimeMs = dtMs;
+			dashStats.CpuTimeMs = dtMs;
+			dashStats.PhysicsMs = 0.0f;
+			dashStats.ScriptingMs = 0.0f;
+
+			const RenderQueue* queue = GetRenderQueue();
+			if (queue) {
+				const RenderStats& rs = queue->GetLastFrameStats();
+				dashStats.DrawCalls2D = rs.DrawCalls2D;
+				dashStats.DrawCalls3D = rs.DrawCalls3D;
+				dashStats.Triangles2D = rs.Triangles2D;
+				dashStats.Triangles3D = rs.Triangles3D;
+				dashStats.Vertices2D = rs.Triangles2D * 2;  // 每四边形 2 三角形、4 顶点
+				dashStats.Vertices3D = rs.Triangles3D * 3;
+			}
+
+			uint32_t activeEntities = 0;
+			for (Scene* scene : GetActivatedScenes())
+				activeEntities += static_cast<uint32_t>(scene->GetEntities().size());
+			dashStats.ActiveEntities = activeEntities;
+
+			dashStats.HeapBytes = MemoryStats::GetProcessHeapBytes();
+			dashStats.VramBytes = RenderContext::GetAPI().GetVramBytes();
+
+			dashStats.PushHistory();
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
