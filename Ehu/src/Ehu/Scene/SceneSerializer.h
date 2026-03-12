@@ -7,14 +7,15 @@ namespace Ehu {
 
 	class Scene;
 
-	/// 场景序列化：保存/加载场景到文件（Id、Tag、Transform、Sprite）；路径与读写通过 FileSystem
+	/// 场景序列化：保存/加载场景到文件。当前仅持久化 ECS 数据（Id、Tag、Transform、Sprite、Camera）；
+	/// Scene 的 SceneNode 场景图不入档也不恢复，路径与读写通过 FileSystem。
 	class EHU_API SceneSerializer {
 	public:
 		SceneSerializer() = default;
 
-		/// 将场景保存到 path；仅序列化 IdComponent、TagComponent、TransformComponent、SpriteComponent
+		/// 将场景保存到 path；序列化 Id、Tag、Transform、Sprite、Camera（Ortho/Persp 参数）及主相机 UUID
 		bool Serialize(Scene* scene, const std::string& path);
-		/// 从 path 加载到 scene（先清空当前实体，再创建并填充）；主相机会根据保存的 MainCamera UUID 设置
+		/// 从 path 加载到 scene（先清空当前实体与场景持有相机，再创建并填充）；主相机会根据保存的 MainCamera UUID 设置
 		bool Deserialize(Scene* scene, const std::string& path);
 	};
 

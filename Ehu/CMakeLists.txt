@@ -54,6 +54,7 @@ if(WIN32)
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     add_definitions(-DEHU_PLATFORM_WINDOWS)
+    target_link_libraries(EhuLib PRIVATE shell32 ole32)  # IFileDialog (FileDialog.cpp)
 
     # 区分 MSVC 与 MinGW / Clang
     if (MSVC)

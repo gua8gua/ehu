@@ -10,6 +10,7 @@ namespace Ehu {
 	}
 
 	void OrthographicCamera::SetProjection(float left, float right, float bottom, float top, float nearZ, float farZ) {
+		m_Left = left; m_Right = right; m_Bottom = bottom; m_Top = top; m_NearZ = nearZ; m_FarZ = farZ;
 		m_ProjectionMatrix = glm::ortho(left, right, bottom, top, nearZ, farZ);
 	}
 
@@ -20,8 +21,13 @@ namespace Ehu {
 	}
 
 	PerspectiveCamera::PerspectiveCamera(float fov, float aspect, float nearZ, float farZ) {
-		m_ProjectionMatrix = glm::perspective(glm::radians(fov), aspect, nearZ, farZ);
+		SetProjection(fov, aspect, nearZ, farZ);
 		RecalculateViewMatrix();
+	}
+
+	void PerspectiveCamera::SetProjection(float fov, float aspect, float nearZ, float farZ) {
+		m_Fov = fov; m_Aspect = aspect; m_NearZ = nearZ; m_FarZ = farZ;
+		m_ProjectionMatrix = glm::perspective(glm::radians(fov), aspect, nearZ, farZ);
 	}
 
 	void PerspectiveCamera::RecalculateViewMatrix() {

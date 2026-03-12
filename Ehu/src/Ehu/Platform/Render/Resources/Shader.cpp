@@ -1,5 +1,6 @@
 #include "ehupch.h"
 #include "Shader.h"
+#include "Core/FileSystem.h"
 #include "Platform/Backend/GraphicsBackend.h"
 
 #if defined(EHU_PLATFORM_WINDOWS)
@@ -22,6 +23,14 @@ namespace Ehu {
 		}
 	}
 
+	Shader* Shader::CreateFromFile(const std::string& vertexPath, const std::string& fragmentPath) {
+		std::string vs = FileSystem::ReadTextFile(vertexPath);
+		std::string fs = FileSystem::ReadTextFile(fragmentPath);
+		if (vs.empty() || fs.empty())
+			return nullptr;
+		return Create(vs, fs);
+	}
+
 	Shader* Shader::CreateDefault2D() {
 		switch (GetGraphicsBackend()) {
 			case GraphicsBackend::OpenGL_GLFW: {
@@ -41,6 +50,34 @@ namespace Ehu {
 			case GraphicsBackend::OpenGL_GLFW: {
 #if defined(EHU_PLATFORM_WINDOWS)
 				return OpenGLShader::CreateDefault2DTextured();
+#else
+				return nullptr;
+#endif
+			}
+			default:
+				return nullptr;
+		}
+	}
+
+	Shader* Shader::CreateBatch2D() {
+		switch (GetGraphicsBackend()) {
+			case GraphicsBackend::OpenGL_GLFW: {
+#if defined(EHU_PLATFORM_WINDOWS)
+				return OpenGLShader::CreateBatch2D();
+#else
+				return nullptr;
+#endif
+			}
+			default:
+				return nullptr;
+		}
+	}
+
+	Shader* Shader::CreateBatch2DTextured() {
+		switch (GetGraphicsBackend()) {
+			case GraphicsBackend::OpenGL_GLFW: {
+#if defined(EHU_PLATFORM_WINDOWS)
+				return OpenGLShader::CreateBatch2DTextured();
 #else
 				return nullptr;
 #endif

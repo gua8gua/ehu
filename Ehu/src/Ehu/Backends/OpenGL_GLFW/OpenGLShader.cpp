@@ -68,6 +68,59 @@ namespace Ehu {
 		return new OpenGLShader(s_DefaultTextured2DVertexSrc, s_DefaultTextured2DFragmentSrc);
 	}
 
+	// 2D 批渲染：顶点格式 a_ClipPosition(vec4) + a_Color(vec4)，CPU 端已乘 ViewProjection*Transform
+	static const char* s_Batch2DVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec4 a_ClipPosition;
+		layout(location = 1) in vec4 a_Color;
+		out vec4 v_Color;
+		void main() {
+			gl_Position = a_ClipPosition;
+			v_Color = a_Color;
+		}
+	)";
+	static const char* s_Batch2DFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		out vec4 FragColor;
+		void main() {
+			FragColor = v_Color;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateBatch2D() {
+		return new OpenGLShader(s_Batch2DVertexSrc, s_Batch2DFragmentSrc);
+	}
+
+	// 2D 带纹理批渲染：a_ClipPosition(4) + a_Color(4) + a_TexCoord(2)，按纹理断批
+	static const char* s_Batch2DTexturedVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec4 a_ClipPosition;
+		layout(location = 1) in vec4 a_Color;
+		layout(location = 2) in vec2 a_TexCoord;
+		out vec4 v_Color;
+		out vec2 v_TexCoord;
+		void main() {
+			gl_Position = a_ClipPosition;
+			v_Color = a_Color;
+			v_TexCoord = a_TexCoord;
+		}
+	)";
+	static const char* s_Batch2DTexturedFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		in vec2 v_TexCoord;
+		uniform sampler2D u_Texture;
+		out vec4 FragColor;
+		void main() {
+			FragColor = texture(u_Texture, v_TexCoord) * v_Color;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateBatch2DTextured() {
+		return new OpenGLShader(s_Batch2DTexturedVertexSrc, s_Batch2DTexturedFragmentSrc);
+	}
+
 	Shader* OpenGLShader::CreateDefault3D() {
 		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
 	}

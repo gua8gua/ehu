@@ -12,6 +12,11 @@ namespace Ehu {
 	public:
 		virtual ~IDrawable() = default;
 		virtual void SubmitTo(RenderQueue& queue) const = 0;
+		/// 使用指定相机作为视图（用于编辑器视口）；默认实现忽略 override 并调用 SubmitTo(queue)
+		virtual void SubmitTo(RenderQueue& queue, Camera* viewCameraOverride) const {
+			(void)viewCameraOverride;
+			SubmitTo(queue);
+		}
 	};
 
 	/// 提供当前帧相机（用于统一 Flush 时的 ViewProjection）；Layer/Scene 可实现

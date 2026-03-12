@@ -15,6 +15,7 @@ namespace Ehu {
 
 	class RenderQueue;
 	class Scene;
+	class Project;
 
 	class EHU_API Application {
 	public:
@@ -37,8 +38,21 @@ namespace Ehu {
 		/// 当前已激活的场景列表（供 Layer 在逻辑 Tick 与 Extract 阶段使用）
 		const std::vector<Scene*>& GetActivatedScenes() const;
 
+		/// 根据 ProjectConfig.Scenes 中 Active 为 true 的条目加载并激活场景；返回成功加载的数量
+		uint32_t ActivateScenesFromProject(Project& project);
+		/// 清空当前已注册场景（用于关闭或切换项目）
+		void DeactivateAllScenes();
+
 		RenderQueue* GetRenderQueue() { return m_RenderQueue.get(); }
 		const RenderQueue* GetRenderQueue() const { return m_RenderQueue.get(); }
+		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+		const ImGuiLayer* GetImGuiLayer() const { return m_ImGuiLayer; }
+		/// 层栈（供编辑器视口等多场景渲染使用）
+		const LayerStack& GetLayerStack() const { return m_LayerStack; }
+
+		/// 是否处于运行（Play）模式；编辑模式下为 false，部分脚本/逻辑可不执行
+		bool IsPlayMode() const { return m_PlayMode; }
+		void SetPlayMode(bool play) { m_PlayMode = play; }
 		/// 上一帧 delta 时间（秒），供调试/统计用
 		float GetDeltaTime() const { return m_TimeStep.GetSeconds(); }
 		/// 估算 FPS（1/delta），delta 为 0 时返回 0
@@ -58,6 +72,7 @@ namespace Ehu {
 
 		std::vector<std::pair<Ref<Scene>, bool>> m_Scenes;  /// scene + activated
 		mutable std::vector<Scene*> m_ActivatedScenesCache;
+		bool m_PlayMode = false;  /// 运行模式（与编辑模式相对，供脚本/逻辑按需分支）
 	};
 
 	Application* CreateApplication();

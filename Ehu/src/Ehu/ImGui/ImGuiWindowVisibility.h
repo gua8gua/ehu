@@ -8,7 +8,6 @@ namespace Ehu {
 	namespace ImGuiWindowVisibility {
 		extern EHU_API bool ShowStats;
 		extern EHU_API bool ShowDashboard;
-		extern EHU_API bool ShowImGuiDemo;
 
 		/// 默认停靠位置（相对主视口 WorkArea）：Stats 左上、Dashboard 其右侧
 		void EHU_API GetDefaultWindowPos(const char* windowName, float& outX, float& outY);

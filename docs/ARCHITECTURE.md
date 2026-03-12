@@ -14,6 +14,7 @@
 | **ECS** | ECS/ | Entity、World、TypeId、Components（Transform/Sprite/Mesh/Camera/Tag/Id） | Core、glm；不依赖 Renderer |
 | **场景** | Scene/ | Scene、SceneNode（纯数据）；Scene 持有 World，管理 Entity 与主相机 | Core、ECS、glm；不依赖 Renderer |
 | **渲染器** | Renderer/ | Camera、Renderer2D、SceneLayer、Material（平台无关） | Core、Platform、Scene、ECS；不包含 GLFW/OpenGL 头文件 |
+| **项目与资源** | Project/ | Project 单例、ProjectConfig、ProjectSerializer；项目文件（.ehuproject）、资产根目录与场景集合 | Core、Scene、Core/FileSystem、Scene/SceneSerializer |
 | **ImGui 集成** | ImGui/ | ImGuiLayer、ImGuiBackend 接口与 Create(backend) | Core、Platform、Events；不包含具体后端 impl |
 | **后端实现** | Backends/OpenGL_GLFW/ | WindowsWindow、WindowsInput、ImGuiBackendGLFWOpenGL、OpenGLRendererAPI | Platform、Core（Application 用于 Input）、Events；包含 GLFW/OpenGL |
 
@@ -36,6 +37,7 @@ Application (Core)
     ├── RendererAPI::Init()     → Platform 工厂 → Backends/OpenGL_GLFW/OpenGLRendererAPI
     ├── ImGuiLayer(GetGraphicsBackend())  → ImGui 工厂 → Backends/OpenGL_GLFW/ImGuiBackendGLFWOpenGL
     ├── LayerStack              → 各 Layer::OnUpdate / OnImGuiRender / OnEvent
+    ├── Project::GetActive()    → 若存在，按 ProjectConfig.Scenes（Active 为 true）调用 ActivateScenesFromProject
     └── Run() 内清屏            → RendererAPI::Get().SetClearColor() / Clear()
 ```
 

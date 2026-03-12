@@ -19,6 +19,7 @@ namespace Ehu {
 		void OnAttach() override;
 		void OnUpdate(const TimeStep& timestep) override;
 		void SubmitTo(RenderQueue& queue) const override;
+		void SubmitTo(RenderQueue& queue, class Camera* viewCameraOverride) const override;
 
 	protected:
 		/// 子类重写以每帧做额外逻辑（场景逻辑以 Scene::OnUpdate 为主）

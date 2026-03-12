@@ -1,6 +1,7 @@
 #include "ehupch.h"
 #include "Scene.h"
 #include "ECS/Components.h"
+#include "Renderer/Camera/Camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
@@ -72,6 +73,11 @@ namespace Ehu {
 	void Scene::OnUpdate(const TimeStep& timestep) {
 		(void)timestep;
 		// CameraSync 在 SceneLayer::SubmitTo 中、提取前对每个 Scene 的 World 执行
+	}
+
+	Camera* Scene::AddOwnedCamera(Scope<Camera> cam) {
+		m_OwnedCameras.push_back(std::move(cam));
+		return m_OwnedCameras.back().get();
 	}
 
 	// --- SceneNode ---

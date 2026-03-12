@@ -4,6 +4,7 @@
 #include "Core/Core.h"
 #include "Core/TimeStep.h"
 #include "Core/UUID.h"
+#include "Core/Ref.h"
 #include "ECS/Entity.h"
 #include "ECS/World.h"
 #include <glm/glm.hpp>
@@ -60,6 +61,7 @@ namespace Ehu {
 		Scene(const Scene&) = delete;
 		Scene& operator=(const Scene&) = delete;
 
+		/// 场景图根节点（当前仅用于运行时层次/变换，SceneSerializer 不序列化场景图）
 		SceneNode* GetRoot() { return &m_Root; }
 		const SceneNode* GetRoot() const { return &m_Root; }
 
@@ -84,10 +86,16 @@ namespace Ehu {
 		/// 逻辑 Tick：运行 CameraSync 等系统，由 Layer::OnUpdate 驱动
 		virtual void OnUpdate(const TimeStep& timestep);
 
+		/// 由场景持有相机所有权（反序列化时创建）；返回裸指针用于 CameraComponent
+		Camera* AddOwnedCamera(Scope<Camera> cam);
+		/// 清空场景持有的相机（Deserialize 开始时调用）
+		void ClearOwnedCameras() { m_OwnedCameras.clear(); }
+
 	private:
 		SceneNode m_Root{ "Root" };
 		World m_World;
 		Entity m_MainCameraEntity;
+		std::vector<Scope<Camera>> m_OwnedCameras;
 	};
 
 } // namespace Ehu

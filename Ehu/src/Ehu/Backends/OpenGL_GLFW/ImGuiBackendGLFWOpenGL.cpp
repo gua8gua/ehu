@@ -1,7 +1,7 @@
 #include "ehupch.h"
 #include "ImGuiBackendGLFWOpenGL.h"
 #include "Platform/IO/Window.h"
-#include "Core/Application.h"
+#include "Core/FileSystem.h"
 #include "imgui.h"
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_glfw.h>
@@ -19,6 +19,25 @@ namespace Ehu {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		// 暂不启用 ViewportsEnable，避免多视口渲染路径在主窗口上清屏导致 3D 场景被擦除；与 OpenGL 3.3 一致使用 330
 		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+		const ImWchar* cjkRanges = io.Fonts->GetGlyphRangesChineseSimplifiedCommon();
+		const char* fontCandidates[] = {
+			"C:/Windows/Fonts/msyh.ttc",
+			"C:/Windows/Fonts/msyh.ttf",
+			"C:/Windows/Fonts/simhei.ttf",
+			"C:/Windows/Fonts/simsun.ttc"
+		};
+		bool loadedCjkFont = false;
+		for (const char* fontPath : fontCandidates) {
+			if (!FileSystem::IsFile(fontPath))
+				continue;
+			if (io.Fonts->AddFontFromFileTTF(fontPath, 16.0f, nullptr, cjkRanges)) {
+				loadedCjkFont = true;
+				break;
+			}
+		}
+		if (!loadedCjkFont)
+			io.Fonts->AddFontDefault();
 
 		ImGui::StyleColorsDark();
 		ImGuiStyle& style = ImGui::GetStyle();

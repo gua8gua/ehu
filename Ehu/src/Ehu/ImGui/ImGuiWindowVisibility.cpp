@@ -7,7 +7,6 @@ namespace Ehu {
 	namespace ImGuiWindowVisibility {
 		bool ShowStats = true;
 		bool ShowDashboard = true;
-		bool ShowImGuiDemo = false;
 
 		void GetDefaultWindowPos(const char* windowName, float& outX, float& outY) {
 			ImGuiViewport* vp = ImGui::GetMainViewport();

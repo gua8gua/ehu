@@ -199,7 +199,6 @@ namespace Ehu {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
 					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
-					m_LastFrameStats.DrawCalls2D++;
 					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(true);
@@ -207,11 +206,11 @@ namespace Ehu {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
 					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
-					m_LastFrameStats.DrawCalls2D++;
 					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(false);
 				Renderer2D::EndScene();
+				m_LastFrameStats.DrawCalls2D += Renderer2D::GetBatchDrawCallsThisScene();
 			}
 		}
 	}

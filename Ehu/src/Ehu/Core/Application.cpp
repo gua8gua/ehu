@@ -19,6 +19,8 @@
 #include "Core/Timer.h"
 #include "Platform/MemoryStats.h"
 #include "Scene/Scene.h"
+#include "Scene/SceneSerializer.h"
+#include "Project/Project.h"
 #include <chrono>
 #include <algorithm>
 #include <sstream>
@@ -91,6 +93,27 @@ namespace Ehu {
 			if (p.second)
 				m_ActivatedScenesCache.push_back(p.first.get());
 		return m_ActivatedScenesCache;
+	}
+
+	uint32_t Application::ActivateScenesFromProject(Project& project) {
+		const ProjectConfig& cfg = project.GetConfig();
+		SceneSerializer serializer;
+		uint32_t loaded = 0;
+		for (const ProjectSceneEntry& entry : cfg.Scenes) {
+			if (!entry.Active) continue;
+			const std::string scenePath = project.GetAssetFileSystemPath(entry.RelativePath);
+			Ref<Scene> scene = CreateRef<Scene>();
+			if (!serializer.Deserialize(scene.get(), scenePath))
+				continue;
+			RegisterScene(scene, true);
+			loaded++;
+		}
+		return loaded;
+	}
+
+	void Application::DeactivateAllScenes() {
+		m_Scenes.clear();
+		m_ActivatedScenesCache.clear();
 	}
 
 	void Application::Run() {

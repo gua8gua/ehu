@@ -4,6 +4,8 @@
 #include "ECS/Components.h"
 #include "Core/FileSystem.h"
 #include "Core/UUID.h"
+#include "Core/Ref.h"
+#include "Renderer/Camera/Camera.h"
 #include <glm/glm.hpp>
 #include <sstream>
 #include <algorithm>
@@ -49,6 +51,7 @@ namespace Ehu {
 			const TagComponent* tc = scene->GetWorld().GetComponent<TagComponent>(e);
 			const TransformComponent* tr = scene->GetWorld().GetComponent<TransformComponent>(e);
 			const SpriteComponent* sp = scene->GetWorld().GetComponent<SpriteComponent>(e);
+			const CameraComponent* cc = scene->GetWorld().GetComponent<CameraComponent>(e);
 			if (!idc) continue;
 
 			out << "Entity\n";
@@ -65,6 +68,14 @@ namespace Ehu {
 				WriteVec2(out, sp->Size); out << ' ';
 				WriteVec4(out, sp->Color); out << ' ';
 				out << sp->SortKey << ' ' << (sp->Transparent ? 1 : 0) << '\n';
+			}
+			if (cc && cc->Camera) {
+				if (auto* oc = dynamic_cast<OrthographicCamera*>(cc->Camera)) {
+					out << "Camera Ortho " << oc->GetLeft() << ' ' << oc->GetRight() << ' ' << oc->GetBottom() << ' '
+						<< oc->GetTop() << ' ' << oc->GetNearZ() << ' ' << oc->GetFarZ() << '\n';
+				} else if (auto* pc = dynamic_cast<PerspectiveCamera*>(cc->Camera)) {
+					out << "Camera Persp " << pc->GetFov() << ' ' << pc->GetAspect() << ' ' << pc->GetNearZ() << ' ' << pc->GetFarZ() << '\n';
+				}
 			}
 			out << "EndEntity\n";
 		}
@@ -89,7 +100,8 @@ namespace Ehu {
 		}
 		while (std::getline(in, line) && line != "---") {}
 
-		// 清空当前实体（保留主相机引用会在后面重设）
+		// 清空当前实体与场景持有的相机（主相机引用会在后面重设）
+		scene->ClearOwnedCameras();
 		std::vector<Entity> toDestroy = scene->GetEntities();
 		for (Entity e : toDestroy)
 			scene->DestroyEntity(e);
@@ -128,6 +140,18 @@ namespace Ehu {
 						&sp.SortKey, &trans) >= 2) {
 						sp.Transparent = (trans != 0);
 						scene->GetWorld().AddComponent(e, sp);
+					}
+				} else if (line.compare(0, 12, "Camera Ortho ") == 0) {
+					float l, r, b, t, n, f;
+					if (sscanf(line.c_str() + 12, "%f %f %f %f %f %f", &l, &r, &b, &t, &n, &f) == 6) {
+						Camera* cam = scene->AddOwnedCamera(CreateScope<OrthographicCamera>(l, r, b, t, n, f));
+						scene->GetWorld().AddComponent(e, CameraComponent{ cam });
+					}
+				} else if (line.compare(0, 12, "Camera Persp ") == 0) {
+					float fov, aspect, n, f;
+					if (sscanf(line.c_str() + 12, "%f %f %f %f", &fov, &aspect, &n, &f) == 4) {
+						Camera* cam = scene->AddOwnedCamera(CreateScope<PerspectiveCamera>(fov, aspect, n, f));
+						scene->GetWorld().AddComponent(e, CameraComponent{ cam });
 					}
 				}
 			}

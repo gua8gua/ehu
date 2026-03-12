@@ -4,6 +4,7 @@ set(PLATFORM_SOURCES
 	MemoryStats.cpp
 	IO/Window.cpp
 	IO/Input.cpp
+	IO/FileDialog.cpp
 	Render/RendererAPI.cpp
 	Render/RenderContext.cpp
 	Render/Framebuffer.cpp
@@ -20,6 +21,7 @@ set(PLATFORM_HEADERS
 	MemoryStats.h
 	IO/Window.h
 	IO/Input.h
+	IO/FileDialog.h
 	Render/RendererAPI.h
 	Render/RenderContext.h
 	Render/Framebuffer.h

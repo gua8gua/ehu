@@ -13,5 +13,6 @@ set(CMAKE_SKIP_BUILD_RPATH TRUE)
 # 添加子项目
 add_subdirectory(Ehu)
 add_subdirectory(SandBox)
+add_subdirectory(EhuEditor)
 
 set(CMAKE_INSTALL_PREFIX "install")

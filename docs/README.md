@@ -14,7 +14,7 @@ ehu/
 │   └── src/
 │       ├── CMakeLists.txt
 │       └── Ehu/
-│           ├── CmakeLists.txt        # 库根：ehupch + 子目录
+│           ├── CMakeLists.txt        # 库根：ehupch + 子目录
 │           ├── ehupch.h / ehupch.cpp
 │           ├── Ehu.h                  # 对外统一头文件
 │           ├── EntryPoint.h           # main() 与启动流程
@@ -52,6 +52,7 @@ ehu/
 └── docs/
     ├── README.md               # 本文件
     ├── ARCHITECTURE.md          # 模块依赖、分层、扩展
+    ├── DASHBOARD.md             # 仪表盘原理与服务
     ├── TODO.md                  # 待办清单
     └── devlog/                  # 开发日志
         └── 001-项目当前进度.md
@@ -71,41 +72,35 @@ ehu/
 - C++17 编译器（MSVC / MinGW / Clang）
 - Windows（当前仅支持该平台）
 
-### 方式一：Visual Studio 生成器（默认）
+### 默认：使用 scripts 脚本（推荐）
 
-```bash
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022" -A x64
-cmake --build . --config Debug
-```
+**scripts** 为项目的编译脚本目录，默认使用此脚本进行配置与编译。配置与构建需在具备 VS 开发环境的环境中执行（脚本会通过 vcvarsall 注入，否则可能报 `rc`/`kernel32.lib` 找不到）。
 
-可执行文件：`build/bin/Debug/SandBox.exe`（库在 `build/bin-int/Debug/`）。
+1. **配置**（生成 `build-ninja/` 与 `compile_commands.json`）：
+   ```powershell
+   .\scripts\gen_compile_commands.ps1
+   ```
+   或在 cmd 中：`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gen_compile_commands.ps1`
 
-### 方式二：Ninja（生成 compile_commands.json，供 C++ 插件用）
-
-**配置与构建均需在 VS 开发者环境中执行**（否则会报 `rc`/`kernel32.lib` 找不到）。
-
-1. **配置**（生成 `build-ninja/compile_commands.json` 与构建文件）：
-  - 在 **PowerShell** 中（建议在项目根目录）：
-  - 在 **cmd** 中（项目根目录）：
-    ```cmd
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gen_compile_commands.ps1
-    ```
 2. **编译**：
-  ```powershell
-  powershell -NoProfile -ExecutionPolicy  Bypass -File  .\scripts\build_ninja.ps1
-  ```
+   ```powershell
+   .\scripts\build_ninja.ps1
+   ```
 
-输出位置（与 CMake 中 `BUILD_DIR` 一致）：
+输出位置：
 
 - 可执行文件：`build-ninja/bin/Debug/SandBox.exe`
 - 静态库：`build-ninja/bin-int/Debug/EhuLib.lib`
-- 编译数据库：`build-ninja/compile_commands.json`（给 VS Code/Cursor 的 C++ 扩展用）
+- 编译数据库：`build-ninja/compile_commands.json`（供 VS Code/Cursor 的 C++ 扩展使用）
 
 **断言**：Debug 配置下 CMake 已定义 `EHU_ENABLE_ASSERTS`，`EHU_ASSERT` / `EHU_CORE_ASSERT` 生效；Release/Dist 不定义，断言为空操作。
 
-若未使用脚本，可先打开 **“Developer PowerShell for VS 2022”**，再执行：
-`cd build-ninja` → `cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug ..` → `ninja`。
+### 其他方式
+
+- **Ninja 手动**：先打开 “Developer PowerShell for VS 2022”，再执行  
+  `mkdir build-ninja; cd build-ninja` → `cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ..` → `ninja`。
+- **Visual Studio 生成器**：`mkdir build && cd build` → `cmake .. -G "Visual Studio 17 2022" -A x64` → `cmake --build . --config Debug`。  
+  可执行文件：`build/bin/Debug/SandBox.exe`（库在 `build/bin-int/Debug/`）。
 
 ---
 
@@ -220,6 +215,7 @@ cmake --build . --config Debug
 | [README.md](README.md)                               | 项目说明、结构、构建、架构与使用。                      |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                   | 模块依赖、分层、事件流、后端选择与扩展。                   |
 | [RENDERER_ARCHITECTURE.md](RENDERER_ARCHITECTURE.md) | 渲染架构调度关系、主循环、Renderer 与 Render API 分层。 |
+| [DASHBOARD.md](DASHBOARD.md)                         | 仪表盘生效原理、数据流与提供的服务（Timing/Rendering/Memory）。 |
 | [TODO.md](TODO.md)                                   | 待办：Timestep、渲染管线、相机、命名与层级等。            |
 | [devlog/](devlog/)                                   | 开发日志，记录项目进度与变更。                        |
 

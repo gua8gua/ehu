@@ -63,13 +63,20 @@ namespace Ehu {
 	}
 
 	void SceneLayer::SubmitTo(RenderQueue& queue) const {
+		SubmitTo(queue, nullptr);
+	}
+
+	void SceneLayer::SubmitTo(RenderQueue& queue, Camera* viewCameraOverride) const {
+		Camera* viewCam = viewCameraOverride;
 		for (Scene* scene : Application::Get().GetActivatedScenes()) {
 			if (!scene) continue;
 			World& world = scene->GetWorld();
 			RunCameraSync(world);
-			Camera* cam = scene->GetMainCamera();
-			if (!cam) continue;
-			SubmitEntitiesOfLayerToQueue(world, this, queue, cam);
+			if (!viewCam)
+				viewCam = scene->GetMainCamera();
+			if (!viewCam) continue;
+			SubmitEntitiesOfLayerToQueue(world, this, queue, viewCam);
+			if (viewCameraOverride) viewCam = viewCameraOverride;
 		}
 	}
 

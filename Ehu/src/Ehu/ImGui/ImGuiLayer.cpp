@@ -81,24 +81,21 @@ namespace Ehu {
 	void ImGuiLayer::OnImGuiRender() {
 		// 全屏 Dockspace：背景透明 + 中央节点透传，以便底层 3D 场景可见
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+		m_DockspaceRootId = (unsigned int)ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 		ImGui::PopStyleColor();
 
 		// 将上一帧中移出主视口的浮动窗口拉回至最近边缘
 		SnapFloatingWindowsBackToViewport();
 
-		// 顶部菜单栏：Window 下提供各窗口的打开/关闭
-		if (ImGui::BeginMainMenuBar()) {
+		// 默认主菜单栏（可由 SetDrawMainMenuBar(false) 关闭，由 EditorLayer 绘制唯一菜单）
+		if (m_DrawMainMenuBar && ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("Window")) {
 				ImGui::MenuItem("Stats", nullptr, &ImGuiWindowVisibility::ShowStats);
 				ImGui::MenuItem("Dashboard", "F3", &ImGuiWindowVisibility::ShowDashboard);
-				ImGui::Separator();
-				ImGui::MenuItem("ImGui Demo", nullptr, &ImGuiWindowVisibility::ShowImGuiDemo);
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
 		}
-		ImGui::ShowDemoWindow(&ImGuiWindowVisibility::ShowImGuiDemo);
 	}
 
 	void ImGuiLayer::SetDarkThemeColors() {
