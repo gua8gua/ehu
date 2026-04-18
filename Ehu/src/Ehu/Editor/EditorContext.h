@@ -20,6 +20,13 @@ namespace Ehu {
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		bool HasEntitySelection() const { return m_SelectedScene != nullptr && m_SelectedEntity.id != 0; }
 
+		/// 当前正在编辑/聚焦的场景
+		void SetActiveScene(Scene* scene, const std::string& relativePath = {});
+		void ClearActiveScene();
+		Scene* GetActiveScene() const { return m_ActiveScene; }
+		const std::string& GetActiveScenePath() const { return m_ActiveScenePath; }
+		bool HasActiveScene() const { return m_ActiveScene != nullptr; }
+
 		/// 资产选择（相对路径，如 "Textures/foo.png"）
 		void SetSelectedAsset(const std::string& relativePath);
 		void ClearSelectedAsset();
@@ -34,6 +41,8 @@ namespace Ehu {
 
 		Scene* m_SelectedScene = nullptr;
 		Entity m_SelectedEntity = { 0, 0 };
+		Scene* m_ActiveScene = nullptr;
+		std::string m_ActiveScenePath;
 		std::string m_SelectedAsset;
 	};
 

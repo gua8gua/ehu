@@ -8,17 +8,39 @@ endforeach()
 
 # 创建库
 add_library(EhuLib STATIC)
+add_library(EhuEditorSupportLib STATIC)
+add_library(EhuImGuiLib STATIC)
 
 # 添加子目录
 add_subdirectory(src)
 
 
 # 设置预编译头
-target_precompile_headers(EhuLib PUBLIC "src/Ehu/ehupch.h")
+foreach(EHU_TARGET EhuLib EhuEditorSupportLib EhuImGuiLib)
+    target_precompile_headers(${EHU_TARGET} PUBLIC "src/Ehu/ehupch.h")
+    set_target_properties(${EHU_TARGET} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+    )
+endforeach()
 
 # 包含目录
 # spdlog为头文件库
-target_include_directories(EhuLib PRIVATE 
+target_include_directories(EhuLib PRIVATE
+    vendor/spdlog/include
+    vendor/GLFW/include
+    vendor/GLAD/include
+    vendor/imgui
+    vendor/stb
+)
+target_compile_definitions(EhuLib PRIVATE EHU_USE_STB_IMAGE)
+target_include_directories(EhuEditorSupportLib PRIVATE
+    vendor/spdlog/include
+    vendor/GLFW/include
+    vendor/GLAD/include
+)
+target_include_directories(EhuImGuiLib PRIVATE
     vendor/spdlog/include
     vendor/GLFW/include
     vendor/GLAD/include
@@ -39,15 +61,51 @@ target_include_directories(glad PUBLIC
         vendor/GLAD/include)
 target_link_libraries(EhuLib PRIVATE glad)
 
+# Box2D（与 Hazel 对齐的 2D 物理）
+include(FetchContent)
+set(BOX2D_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(BOX2D_BUILD_TESTBED OFF CACHE BOOL "" FORCE)
+set(BOX2D_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+	box2d
+	GIT_REPOSITORY https://github.com/erincatto/box2d.git
+	GIT_TAG v2.4.1
+)
+FetchContent_MakeAvailable(box2d)
+target_link_libraries(EhuLib PRIVATE box2d)
+
 # 添加 ImGui
 add_subdirectory(vendor/imgui)
-target_link_libraries(EhuLib PRIVATE ImGui)  # 链接 ImGui 库
+target_link_libraries(EhuImGuiLib PUBLIC ImGui EhuLib)  # ImGui 桥接与工具窗口由编辑器显式接入
 
 # 添加glm
 add_subdirectory(vendor/glm)
 target_link_libraries(EhuLib PUBLIC glm)
+target_link_libraries(EhuEditorSupportLib PUBLIC EhuLib)
 
 add_definitions( -DEHU_BUILD_DLL -DEHU_STATIC)
+
+# 预留 Mono 运行时依赖（用于 C# 脚本集成）
+# - 优先使用环境变量 MONO_ROOT 指定的安装位置
+# - 若未设置，则交由外部工具/用户自行配置 include/lib 路径
+set(MONO_ROOT "" CACHE PATH "Root directory of Mono installation (contains include/mono-2.0 and lib)")
+if(MONO_ROOT)
+    message(STATUS "Mono root: ${MONO_ROOT}")
+    set(MONO_INCLUDE_DIR "${MONO_ROOT}/include/mono-2.0")
+    set(MONO_LIB_DIR "${MONO_ROOT}/lib")
+    find_path(MONO_EMBED_INCLUDE mono/jit/jit.h PATHS "${MONO_INCLUDE_DIR}")
+    find_library(MONO_EMBED_LIB NAMES mono-2.0-sgen mono-2.0 PATHS "${MONO_LIB_DIR}")
+    if(MONO_EMBED_INCLUDE AND MONO_EMBED_LIB)
+        message(STATUS "Found Mono embedding API: ${MONO_EMBED_INCLUDE}, lib: ${MONO_EMBED_LIB}")
+        target_include_directories(EhuLib PRIVATE "${MONO_EMBED_INCLUDE}")
+        target_link_libraries(EhuLib PRIVATE "${MONO_EMBED_LIB}")
+        add_definitions(-DEHU_ENABLE_MONO)
+    else()
+        message(WARNING "MONO_ROOT is set but mono embedding headers or library were not found. C# 脚本运行时暂不可用。")
+    endif()
+else()
+    message(STATUS "MONO_ROOT not set; 跳过 Mono 链接，脚本运行时需手动配置。")
+endif()
 
 # Windows设置
 if(WIN32)

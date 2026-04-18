@@ -18,6 +18,8 @@ namespace Ehu {
 		static Shader* CreateDefault2DTextured();
 		static Shader* CreateBatch2D();
 		static Shader* CreateBatch2DTextured();
+		static Shader* CreateBatch2DEntityID();
+		static Shader* CreateBatch2DTexturedEntityID();
 		static Shader* CreateDefault3D();
 
 		void Bind() const override;

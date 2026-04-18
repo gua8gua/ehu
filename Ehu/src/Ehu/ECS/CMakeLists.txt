@@ -2,12 +2,16 @@
 set(ECS_SOURCES
 	World.cpp
 	Components.cpp
+	ComponentReflection.cpp
+	LayerRegistry.cpp
 )
 set(ECS_HEADERS
 	Entity.h
 	TypeId.h
 	World.h
 	Components.h
+	ComponentReflection.h
+	LayerRegistry.h
 )
 target_sources(EhuLib PRIVATE ${ECS_SOURCES} ${ECS_HEADERS})
 target_include_directories(EhuLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

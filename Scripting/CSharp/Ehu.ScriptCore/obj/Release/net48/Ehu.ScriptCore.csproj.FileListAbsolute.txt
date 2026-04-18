@@ -1,0 +1,10 @@
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\bin\Release\net48\Ehu-ScriptCore.dll
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\bin\Release\net48\Ehu-ScriptCore.pdb
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.csproj.AssemblyReference.cache
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.GeneratedMSBuildEditorConfig.editorconfig
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.AssemblyInfoInputs.cache
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.AssemblyInfo.cs
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.csproj.CoreCompileInputs.cache
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu.ScriptCore.sourcelink.json
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu-ScriptCore.dll
+D:\CProject\ehu\Scripting\CSharp\Ehu.ScriptCore\obj\Release\net48\Ehu-ScriptCore.pdb

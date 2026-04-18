@@ -32,6 +32,9 @@ namespace Ehu {
 		static Shader* CreateBatch2D();
 		/// 2D 带纹理批渲染：a_ClipPosition(vec4) + a_Color(vec4) + a_TexCoord(vec2)，按纹理断批
 		static Shader* CreateBatch2DTextured();
+		/// MRT：颜色 + R32UI entity id（顶点 stride 12 / 14）
+		static Shader* CreateBatch2DEntityID();
+		static Shader* CreateBatch2DTexturedEntityID();
 		static Shader* CreateDefault3D();
 	};
 

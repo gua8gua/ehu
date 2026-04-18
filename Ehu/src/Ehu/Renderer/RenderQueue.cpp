@@ -4,18 +4,50 @@
 #include "Renderer3D.h"
 #include "Platform/Render/RendererAPI.h"
 #include "Platform/Render/Resources/VertexArray.h"
+#include "Platform/Render/Resources/Texture2D.h"
+#include "Renderer/Text/Font.h"
 #include "Camera/Camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <cmath>
 
 namespace Ehu {
+
+	namespace {
+
+		void DispatchDraw2D(const DrawCommand2D& cmd) {
+			switch (cmd.Kind) {
+			case Draw2DKind::ColorQuad:
+				Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color, cmd.EntityId);
+				break;
+			case Draw2DKind::TexturedQuad:
+				if (cmd.Texture)
+					Renderer2D::DrawQuad(cmd.WorldMatrix, cmd.Texture, cmd.Color, cmd.TilingFactor, cmd.EntityId);
+				break;
+			case Draw2DKind::Circle: {
+				const glm::vec3 c(cmd.WorldMatrix[3]);
+				const float sx = glm::length(glm::vec3(cmd.WorldMatrix[0]));
+				const float sy = glm::length(glm::vec3(cmd.WorldMatrix[1]));
+				const float radius = 0.5f * std::max(sx, sy);
+				Renderer2D::DrawCircle(c, radius, cmd.Color, cmd.CircleThickness, 48, cmd.EntityId);
+				break;
+			}
+			case Draw2DKind::Text:
+				if (cmd.TextFont && !cmd.TextContent.empty())
+					Renderer2D::DrawText(cmd.Position, cmd.TextContent, cmd.TextFont, cmd.Color, cmd.EntityId);
+				break;
+			}
+		}
+
+	} // namespace
 
 	void RenderQueue::Reserve2D(size_t count) { m_Commands2D.reserve(count); }
 	void RenderQueue::Reserve3D(size_t count) { m_Commands3D.reserve(count); }
 
 	void RenderQueue::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color,
-		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey) {
+		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey, uint32_t entityId) {
 		DrawCommand2D cmd;
+		cmd.Kind = Draw2DKind::ColorQuad;
 		cmd.Position = position;
 		cmd.Size = size;
 		cmd.Color = color;
@@ -24,12 +56,69 @@ namespace Ehu {
 		cmd.LayerIndex = m_CurrentLayerIndex;
 		cmd.ViewCamera = viewCamera;
 		cmd.MaterialKey = materialKey;
+		cmd.EntityId = entityId;
 		m_Commands2D.push_back(cmd);
 	}
 
 	void RenderQueue::SubmitQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color,
-		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey) {
-		SubmitQuad(glm::vec3(position.x, position.y, 0.0f), size, color, sortKey, transparent, viewCamera, materialKey);
+		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey, uint32_t entityId) {
+		SubmitQuad(glm::vec3(position.x, position.y, 0.0f), size, color, sortKey, transparent, viewCamera, materialKey, entityId);
+	}
+
+	void RenderQueue::SubmitTexturedQuad(const glm::mat4& world, Texture2D* texture, float tiling, const glm::vec4& tint,
+		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey, uint32_t entityId) {
+		if (!texture)
+			return;
+		DrawCommand2D cmd;
+		cmd.Kind = Draw2DKind::TexturedQuad;
+		cmd.WorldMatrix = world;
+		cmd.Texture = texture;
+		cmd.TilingFactor = tiling;
+		cmd.Color = tint;
+		cmd.SortKey = sortKey;
+		cmd.Transparent = transparent;
+		cmd.LayerIndex = m_CurrentLayerIndex;
+		cmd.ViewCamera = viewCamera;
+		cmd.MaterialKey = materialKey;
+		cmd.EntityId = entityId;
+		m_Commands2D.push_back(cmd);
+	}
+
+	void RenderQueue::SubmitCircle(const glm::mat4& world, const glm::vec4& color, float thickness, float fade,
+		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey, uint32_t entityId) {
+		(void)fade;
+		DrawCommand2D cmd;
+		cmd.Kind = Draw2DKind::Circle;
+		cmd.WorldMatrix = world;
+		cmd.Color = color;
+		cmd.CircleThickness = thickness;
+		cmd.CircleFade = fade;
+		cmd.SortKey = sortKey;
+		cmd.Transparent = transparent;
+		cmd.LayerIndex = m_CurrentLayerIndex;
+		cmd.ViewCamera = viewCamera;
+		cmd.MaterialKey = materialKey;
+		cmd.EntityId = entityId;
+		m_Commands2D.push_back(cmd);
+	}
+
+	void RenderQueue::SubmitText(const glm::vec3& position, const std::string& text, Font* font, const glm::vec4& color,
+		float sortKey, bool transparent, Camera* viewCamera, uint32_t materialKey, uint32_t entityId) {
+		if (!font || text.empty())
+			return;
+		DrawCommand2D cmd;
+		cmd.Kind = Draw2DKind::Text;
+		cmd.Position = position;
+		cmd.TextContent = text;
+		cmd.TextFont = font;
+		cmd.Color = color;
+		cmd.SortKey = sortKey;
+		cmd.Transparent = transparent;
+		cmd.LayerIndex = m_CurrentLayerIndex;
+		cmd.ViewCamera = viewCamera;
+		cmd.MaterialKey = materialKey;
+		cmd.EntityId = entityId;
+		m_Commands2D.push_back(cmd);
 	}
 
 	void RenderQueue::SubmitMesh(VertexArray* vertexArray, uint32_t indexCount, const glm::mat4& transform, const glm::vec4& color,
@@ -112,15 +201,11 @@ namespace Ehu {
 	void RenderQueue::Flush2D() const {
 		auto& api = RendererAPI::Get();
 		api.SetBlend(false);
-		for (size_t i : m_SortedOpaque2D) {
-			const auto& cmd = m_Commands2D[i];
-			Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
-		}
+		for (size_t i : m_SortedOpaque2D)
+			DispatchDraw2D(m_Commands2D[i]);
 		api.SetBlend(true);
-		for (size_t i : m_SortedTransparent2D) {
-			const auto& cmd = m_Commands2D[i];
-			Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
-		}
+		for (size_t i : m_SortedTransparent2D)
+			DispatchDraw2D(m_Commands2D[i]);
 		api.SetBlend(false);
 	}
 
@@ -198,14 +283,14 @@ namespace Ehu {
 				for (size_t i : m_SortedOpaque2D) {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
-					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
+					DispatchDraw2D(cmd);
 					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(true);
 				for (size_t i : m_SortedTransparent2D) {
 					const auto& cmd = m_Commands2D[i];
 					if (cmd.ViewCamera != cam) continue;
-					Renderer2D::DrawQuad(cmd.Position, cmd.Size, cmd.Color);
+					DispatchDraw2D(cmd);
 					m_LastFrameStats.Triangles2D += 2;
 				}
 				api.SetBlend(false);

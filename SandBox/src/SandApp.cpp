@@ -1,10 +1,11 @@
-#include "Ehu.h"
+#include "EntryPoint.h"
 #include "Renderer/RendererModule.h"
 #include "Core/Application.h"
 #include "Core/Layer.h"
 #include "Scene/Scene.h"
 #include "ECS/World.h"
 #include "ECS/Components.h"
+#include "ECS/LayerRegistry.h"
 #include "Renderer/Camera/Camera.h"
 #include "Core/Ref.h"
 #include "Platform/Render/Resources/VertexArray.h"
@@ -49,7 +50,7 @@ struct CubeData {
 /// 示例 3D 场景：ECS 实体 + 立方体几何；OnUpdate 中更新 Transform 组件
 class Example3DScene : public Ehu::Scene {
 public:
-	explicit Example3DScene(Ehu::Layer* renderLayer) : m_RenderLayer(renderLayer) {
+	Example3DScene() {
 		m_MainCamera = Ehu::CreateScope<Ehu::PerspectiveCamera>(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f);
 		Ehu::Entity camEnt = CreateEntity();
 		GetWorld().AddComponent(camEnt, Ehu::TransformComponent{});
@@ -93,6 +94,7 @@ public:
 		m_CubeVertexArray->SetIndexBuffer(m_CubeIndexBuffer);
 
 		Ehu::World& w = GetWorld();
+		const Ehu::RenderChannelId worldChannel = Ehu::LayerRegistry::RegisterRenderChannel("World");
 		for (const CubeData& cube : m_Cubes) {
 			Ehu::Entity e = CreateEntity();
 			Ehu::TransformComponent tr;
@@ -105,8 +107,8 @@ public:
 			mesh.SortKey = 0.0f;
 			mesh.Transparent = false;
 			w.AddComponent(e, mesh);
-			Ehu::TagComponent* tag = w.GetComponent<Ehu::TagComponent>(e);
-			if (tag) tag->RenderLayer = m_RenderLayer;
+			w.AddComponent(e, Ehu::RenderFilterComponent{ worldChannel });
+			w.AddComponent(e, Ehu::PhysicsFilterComponent{});
 			m_CubeEntities.push_back(e);
 		}
 	}
@@ -125,7 +127,6 @@ public:
 	}
 
 private:
-	Ehu::Layer* m_RenderLayer = nullptr;
 	Ehu::Scope<Ehu::Camera> m_MainCamera;
 	std::vector<CubeData> m_Cubes;
 	std::vector<Ehu::Entity> m_CubeEntities;
@@ -136,14 +137,15 @@ private:
 
 class Example3DLayer : public Ehu::SceneLayer {
 public:
-	Example3DLayer() : SceneLayer("Example3D") {}
+	Example3DLayer() : SceneLayer("Example3D", Ehu::LayerRegistry::RegisterRenderChannel("World")) {}
 };
 
 class SandApp : public Ehu::Application {
 public:
-	SandApp() {
+	SandApp(const Ehu::ApplicationSpecification& specification)
+		: Ehu::Application(specification) {
 		Example3DLayer* layer = new Example3DLayer();
-		Ehu::Ref<Example3DScene> scene = Ehu::CreateRef<Example3DScene>(layer);
+		Ehu::Ref<Example3DScene> scene = Ehu::CreateRef<Example3DScene>();
 		scene->SetupCubes();
 		RegisterScene(scene, true);
 		PushLayer(layer);
@@ -151,6 +153,9 @@ public:
 	~SandApp() {}
 };
 
-Ehu::Application* Ehu::CreateApplication() {
-	return new SandApp();
+Ehu::Application* Ehu::CreateApplication(Ehu::ApplicationCommandLineArgs args) {
+	Ehu::ApplicationSpecification specification;
+	specification.Name = "SandBox";
+	specification.CommandLineArgs = args;
+	return new SandApp(specification);
 }

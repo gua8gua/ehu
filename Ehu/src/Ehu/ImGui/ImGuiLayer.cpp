@@ -1,7 +1,7 @@
 #include "ehupch.h"
 #include "ImGuiLayer.h"
-#include "ImGuiWindowVisibility.h"
 #include "Core/Application.h"
+#include "Events/Event.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -68,6 +68,16 @@ namespace Ehu {
 	void ImGuiLayer::OnDetach() {
 	}
 
+	void ImGuiLayer::OnEvent(Event& e) {
+		if (!m_BlockEvents)
+			return;
+		ImGuiIO& io = ImGui::GetIO();
+		if (e.IsInCategory(EventCategoryMouse))
+			e.Handled |= io.WantCaptureMouse;
+		if (e.IsInCategory(EventCategoryKeyboard))
+			e.Handled |= io.WantCaptureKeyboard;
+	}
+
 	void ImGuiLayer::Begin() {
 		if (m_Backend)
 			m_Backend->BeginFrame();
@@ -87,13 +97,8 @@ namespace Ehu {
 		// 将上一帧中移出主视口的浮动窗口拉回至最近边缘
 		SnapFloatingWindowsBackToViewport();
 
-		// 默认主菜单栏（可由 SetDrawMainMenuBar(false) 关闭，由 EditorLayer 绘制唯一菜单）
+		// 默认主菜单栏（可由 SetDrawMainMenuBar(false) 关闭；无内置 Window 项，避免与编辑器面板状态分叉）
 		if (m_DrawMainMenuBar && ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("Window")) {
-				ImGui::MenuItem("Stats", nullptr, &ImGuiWindowVisibility::ShowStats);
-				ImGui::MenuItem("Dashboard", "F3", &ImGuiWindowVisibility::ShowDashboard);
-				ImGui::EndMenu();
-			}
 			ImGui::EndMainMenuBar();
 		}
 	}
@@ -102,7 +107,7 @@ namespace Ehu {
 	}
 
 	uint32_t ImGuiLayer::GetActiveWidgetID() const {
-		return 33;
+		return GImGui ? GImGui->ActiveId : 0u;
 	}
 
 } // namespace Ehu

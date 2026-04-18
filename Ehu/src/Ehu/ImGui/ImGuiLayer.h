@@ -5,6 +5,7 @@
 #include "ImGuiBackend.h"
 #include "Platform/Backend/GraphicsBackend.h"
 #include "Events/ApplicationEvent.h"
+#include "Events/Event.h"
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
 
@@ -19,6 +20,7 @@ namespace Ehu {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 		virtual void OnImGuiRender() override;
+		void OnEvent(Event& e) override;
 
 		void Begin();
 		void End();
@@ -39,7 +41,7 @@ namespace Ehu {
 	private:
 		Scope<ImGuiBackend> m_Backend;
 		bool m_BlockEvents = true;
-		bool m_DrawMainMenuBar = true;
+		bool m_DrawMainMenuBar = false;
 		unsigned int m_DockspaceRootId = 0;
 		float m_Time = 0.0f;
 	};

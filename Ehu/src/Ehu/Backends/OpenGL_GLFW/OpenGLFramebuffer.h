@@ -17,6 +17,10 @@ namespace Ehu {
 		uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override;
 		const FramebufferSpec& GetSpec() const override { return m_Spec; }
 
+		void ClearColorAttachmentRGBA(uint32_t attachmentIndex, float r, float g, float b, float a) override;
+		void ClearColorAttachmentUInt(uint32_t attachmentIndex, uint32_t value) override;
+		uint32_t ReadPixelUInt(uint32_t attachmentIndex, uint32_t x, uint32_t y) override;
+
 	private:
 		void Invalidate();
 

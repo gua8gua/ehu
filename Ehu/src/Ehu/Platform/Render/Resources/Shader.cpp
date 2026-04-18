@@ -87,6 +87,34 @@ namespace Ehu {
 		}
 	}
 
+	Shader* Shader::CreateBatch2DEntityID() {
+		switch (GetGraphicsBackend()) {
+			case GraphicsBackend::OpenGL_GLFW: {
+#if defined(EHU_PLATFORM_WINDOWS)
+				return OpenGLShader::CreateBatch2DEntityID();
+#else
+				return nullptr;
+#endif
+			}
+			default:
+				return nullptr;
+		}
+	}
+
+	Shader* Shader::CreateBatch2DTexturedEntityID() {
+		switch (GetGraphicsBackend()) {
+			case GraphicsBackend::OpenGL_GLFW: {
+#if defined(EHU_PLATFORM_WINDOWS)
+				return OpenGLShader::CreateBatch2DTexturedEntityID();
+#else
+				return nullptr;
+#endif
+			}
+			default:
+				return nullptr;
+		}
+	}
+
 	Shader* Shader::CreateDefault3D() {
 		switch (GetGraphicsBackend()) {
 			case GraphicsBackend::OpenGL_GLFW: {

@@ -49,13 +49,15 @@ ehu/
 ├── SandBox/                    # 示例可执行程序
 │   ├── CMakeLists.txt
 │   └── src/SandApp.cpp         # CreateApplication() + 自定义 Layer
+├── Scripting/
+│   └── CSharp/                  # 托管脚本源码（ScriptCore + Game）
+├── build-scripts/               # 构建脚本（C++ 配置/编译 + C# 编译）
 └── docs/
-    ├── README.md               # 本文件
-    ├── ARCHITECTURE.md          # 模块依赖、分层、扩展
-    ├── DASHBOARD.md             # 仪表盘原理与服务
+    ├── README.md                # 本文件（总入口）
+    ├── ARCHITECTURE.md          # 架构与模块边界
     ├── TODO.md                  # 待办清单
-    └── devlog/                  # 开发日志
-        └── 001-项目当前进度.md
+    ├── devlog/                  # 开发日志
+    └── technical/               # 技术文档（ECS、Scripting、ImGui 等）
 ```
 
 - **Core**：Application、Layer、LayerStack、Log、键鼠码等，不包含任何 GLFW/OpenGL 头文件。
@@ -72,19 +74,19 @@ ehu/
 - C++17 编译器（MSVC / MinGW / Clang）
 - Windows（当前仅支持该平台）
 
-### 默认：使用 scripts 脚本（推荐）
+### 默认：使用 build-scripts 脚本（推荐）
 
-**scripts** 为项目的编译脚本目录，默认使用此脚本进行配置与编译。配置与构建需在具备 VS 开发环境的环境中执行（脚本会通过 vcvarsall 注入，否则可能报 `rc`/`kernel32.lib` 找不到）。
+**build-scripts** 为项目的编译脚本目录，默认使用此脚本进行配置与编译。配置与构建需在具备 VS 开发环境的环境中执行（脚本会通过 vcvarsall 注入，否则可能报 `rc`/`kernel32.lib` 找不到）。
 
 1. **配置**（生成 `build-ninja/` 与 `compile_commands.json`）：
    ```powershell
-   .\scripts\gen_compile_commands.ps1
+   .\build-scripts\gen_compile_commands.ps1
    ```
-   或在 cmd 中：`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gen_compile_commands.ps1`
+   或在 cmd 中：`powershell -NoProfile -ExecutionPolicy Bypass -File .\build-scripts\gen_compile_commands.ps1`
 
 2. **编译**：
    ```powershell
-   .\scripts\build_ninja.ps1
+   .\build-scripts\build_ninja.ps1
    ```
 
 输出位置：
@@ -94,6 +96,49 @@ ehu/
 - 编译数据库：`build-ninja/compile_commands.json`（供 VS Code/Cursor 的 C++ 扩展使用）
 
 **断言**：Debug 配置下 CMake 已定义 `EHU_ENABLE_ASSERTS`，`EHU_ASSERT` / `EHU_CORE_ASSERT` 生效；Release/Dist 不定义，断言为空操作。
+
+### 脚本（C#）构建
+
+托管脚本源码与目录说明见仓库根目录 **[Scripting/README.md](../Scripting/README.md)**（与引擎内 `Ehu/src/Ehu/Scripting` 区分）。
+
+> 你可以把它理解成“第二条并行构建链路”：  
+> C++ 用 CMake/Ninja，C# 用 dotnet build。
+
+1. 在项目根目录执行：
+   ```powershell
+   .\build-scripts\build_script_core.ps1
+   ```
+   或：
+   ```powershell
+   cd .\Scripting\CSharp
+   dotnet build .\Ehu.Scripting.sln -c Release
+   ```
+2. 产物输出：
+   - `Scripting/CSharp/Ehu.ScriptCore/bin/Release/net48/Ehu-ScriptCore.dll`
+   - `Scripting/CSharp/Game/bin/Release/net48/Game.dll`
+3. `obj/` 为中间文件，`bin/` 为最终 DLL 输出。
+
+### 一图看懂两条构建链路
+
+```mermaid
+flowchart TD
+  cppSrc["C++Source"] --> topCmake["TopLevelCMakeLists"]
+  topCmake --> ninjaGen["gen_compile_commands.ps1"]
+  ninjaGen --> ninjaBuild["build_ninja.ps1"]
+  ninjaBuild --> cppOut["build-ninja/bin_and_bin-int"]
+
+  csSrc["CSharpSource"] --> sln["Ehu.Scripting.sln"]
+  sln --> csBuild["build_script_core.ps1_or_dotnet_build"]
+  csBuild --> csOut["Scripting/CSharp/bin_and_obj"]
+```
+
+### 构建文件到底各自干什么（新手版）
+
+- `CMakeLists.txt`（顶层）：把 `Ehu`、`SandBox`、`EhuEditor` 组织进同一个工程图。
+- `*/CMakeLists.txt`（子目录）：定义“这个模块有哪些源码、链接哪些库”。
+- `build-scripts/gen_compile_commands.ps1`：做“配置”（生成 Ninja 构建目录和 `compile_commands.json`）。
+- `build-scripts/build_ninja.ps1`：做“编译”（调用 Ninja 生成 C++ 可执行和库）。
+- `build-scripts/build_script_core.ps1`：调用 `dotnet build` 编译 C# 脚本 DLL。
 
 ### 其他方式
 
@@ -120,7 +165,7 @@ ehu/
 ### 层与层栈、Scene 与 Layer
 
 - **Layer**：可重写 `OnAttach`、`OnDetach`、`OnUpdate`、`OnImGuiRender`、`OnEvent`。负责“怎么做（逻辑与渲染顺序）”。
-- **Scene**：独立模块，纯数据；管理 SceneEntity，实体由场景拥有。渲染由引擎提供的 **SceneLayer** 负责提交，用户只创建场景、设置实体状态（如 SetPosition/SetRotation）。详见 [ARCHITECTURE.md](ARCHITECTURE.md) 与 [RENDERER_ARCHITECTURE.md](RENDERER_ARCHITECTURE.md)。
+- **Scene**：独立模块，纯数据；管理 SceneEntity，实体由场景拥有。渲染由引擎提供的 **SceneLayer** 负责提交，用户只创建场景、设置实体状态（如 SetPosition/SetRotation）。详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 - **LayerStack**：普通层与 Overlay；事件从栈顶向栈底派发，可被 `Handled` 截断。
 
 ### 事件系统
@@ -214,9 +259,12 @@ ehu/
 | ---------------------------------------------------- | -------------------------------------- |
 | [README.md](README.md)                               | 项目说明、结构、构建、架构与使用。                      |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                   | 模块依赖、分层、事件流、后端选择与扩展。                   |
-| [RENDERER_ARCHITECTURE.md](RENDERER_ARCHITECTURE.md) | 渲染架构调度关系、主循环、Renderer 与 Render API 分层。 |
-| [DASHBOARD.md](DASHBOARD.md)                         | 仪表盘生效原理、数据流与提供的服务（Timing/Rendering/Memory）。 |
 | [TODO.md](TODO.md)                                   | 待办：Timestep、渲染管线、相机、命名与层级等。            |
 | [devlog/](devlog/)                                   | 开发日志，记录项目进度与变更。                        |
+| [technical/04-ECS.md](technical/04-ECS.md)           | ECS 结构、存储模型、性能特征与使用约束。               |
+| [technical/05-ScriptingModule.md](technical/05-ScriptingModule.md) | Scripting 模块用途、技术原理、构建与排错。 |
+| [technical/06-ImGuiModule.md](technical/06-ImGuiModule.md) | ImGui 接入、面板清单、数据流与 Dock 层级。 |
+| [technical/11-ECS-Scripting-RefactorBaseline.md](technical/11-ECS-Scripting-RefactorBaseline.md) | ECS 与 Scripting 重构基线与约束。 |
+| [Scripting/README.md](../Scripting/README.md)（仓库根目录） | 根目录 `Scripting/`（C#）用途、与 C++ 脚本目录区别、编译与部署。 |
 
 

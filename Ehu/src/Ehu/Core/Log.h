@@ -4,14 +4,24 @@
 #include "Core.h"
 #include "Ref.h"
 #include "spdlog/spdlog.h"
+#include <string>
+#include <vector>
 
 namespace Ehu {
+
+	struct EHU_API BufferedLogMessage {
+		std::string Logger;
+		std::string Level;
+		std::string Message;
+	};
 
 	class EHU_API Log {
 	public:
 		static void Init();
 		static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
 		static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+		static const std::vector<BufferedLogMessage>& GetBufferedMessages();
+		static void ClearBufferedMessages();
 	private:
 		static Ref<spdlog::logger> s_CoreLogger;
 		static Ref<spdlog::logger> s_ClientLogger;

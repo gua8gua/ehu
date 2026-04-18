@@ -38,6 +38,42 @@ namespace Ehu {
 			glEnableVertexAttribArray(m_VertexBufferIndex);
 			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(4 * sizeof(float)));
 			m_VertexBufferIndex++;
+		} else if (strideFloats == 10) {
+			// 带纹理批渲染：clip4 + color4 + tex2
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)0);
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(4 * sizeof(float)));
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 2, GL_FLOAT, GL_FALSE, stride, (const void*)(8 * sizeof(float)));
+			m_VertexBufferIndex++;
+		} else if (strideFloats == 12) {
+			// 批渲染 + EntityID：clip4 + color4 + entity(vec4，仅用 x)
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)0);
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(4 * sizeof(float)));
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(8 * sizeof(float)));
+			m_VertexBufferIndex++;
+		} else if (strideFloats == 14) {
+			// 带纹理批渲染 + EntityID：clip4 + color4 + tex2 + entity(vec4)
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)0);
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(4 * sizeof(float)));
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 2, GL_FLOAT, GL_FALSE, stride, (const void*)(8 * sizeof(float)));
+			m_VertexBufferIndex++;
+			glEnableVertexAttribArray(m_VertexBufferIndex);
+			glVertexAttribPointer(m_VertexBufferIndex, 4, GL_FLOAT, GL_FALSE, stride, (const void*)(10 * sizeof(float)));
+			m_VertexBufferIndex++;
 		} else {
 			glEnableVertexAttribArray(m_VertexBufferIndex);
 			glVertexAttribPointer(m_VertexBufferIndex, 3, GL_FLOAT, GL_FALSE, stride, (const void*)0);

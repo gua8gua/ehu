@@ -17,6 +17,7 @@ set(CORE_HEADERS
 	Log.h
 	MouseCodes.h
 	Ref.h
+	RuntimeStats.h
 	TimeStep.h
 	Timer.h
 	UUID.h

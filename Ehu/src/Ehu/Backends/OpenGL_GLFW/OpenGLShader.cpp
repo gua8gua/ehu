@@ -1,7 +1,7 @@
 #include "ehupch.h"
 #include "OpenGLShader.h"
 #include "Core/Log.h"
-#include "ImGui/DashboardStats.h"
+#include "Core/RuntimeStats.h"
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -121,6 +121,69 @@ namespace Ehu {
 		return new OpenGLShader(s_Batch2DTexturedVertexSrc, s_Batch2DTexturedFragmentSrc);
 	}
 
+	static const char* s_Batch2DEntityIDVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec4 a_ClipPosition;
+		layout(location = 1) in vec4 a_Color;
+		layout(location = 2) in vec4 a_EntityPacked;
+		out vec4 v_Color;
+		flat out uint v_EntityID;
+		void main() {
+			gl_Position = a_ClipPosition;
+			v_Color = a_Color;
+			v_EntityID = floatBitsToUint(a_EntityPacked.x);
+		}
+	)";
+	static const char* s_Batch2DEntityIDFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		flat in uint v_EntityID;
+		layout(location = 0) out vec4 FragColor;
+		layout(location = 1) out uint o_EntityID;
+		void main() {
+			FragColor = v_Color;
+			o_EntityID = v_EntityID;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateBatch2DEntityID() {
+		return new OpenGLShader(s_Batch2DEntityIDVertexSrc, s_Batch2DEntityIDFragmentSrc);
+	}
+
+	static const char* s_Batch2DTexturedEntityIDVertexSrc = R"(
+		#version 330 core
+		layout(location = 0) in vec4 a_ClipPosition;
+		layout(location = 1) in vec4 a_Color;
+		layout(location = 2) in vec2 a_TexCoord;
+		layout(location = 3) in vec4 a_EntityPacked;
+		out vec4 v_Color;
+		out vec2 v_TexCoord;
+		flat out uint v_EntityID;
+		void main() {
+			gl_Position = a_ClipPosition;
+			v_Color = a_Color;
+			v_TexCoord = a_TexCoord;
+			v_EntityID = floatBitsToUint(a_EntityPacked.x);
+		}
+	)";
+	static const char* s_Batch2DTexturedEntityIDFragmentSrc = R"(
+		#version 330 core
+		in vec4 v_Color;
+		in vec2 v_TexCoord;
+		flat in uint v_EntityID;
+		uniform sampler2D u_Texture;
+		layout(location = 0) out vec4 FragColor;
+		layout(location = 1) out uint o_EntityID;
+		void main() {
+			FragColor = texture(u_Texture, v_TexCoord) * v_Color;
+			o_EntityID = v_EntityID;
+		}
+	)";
+
+	Shader* OpenGLShader::CreateBatch2DTexturedEntityID() {
+		return new OpenGLShader(s_Batch2DTexturedEntityIDVertexSrc, s_Batch2DTexturedEntityIDFragmentSrc);
+	}
+
 	Shader* OpenGLShader::CreateDefault3D() {
 		return new OpenGLShader(s_DefaultVertexSrc, s_DefaultFragmentSrc);
 	}
@@ -182,7 +245,7 @@ namespace Ehu {
 	void OpenGLShader::Bind() const {
 		if (s_CurrentBoundProgram != m_RendererID) {
 			s_CurrentBoundProgram = m_RendererID;
-			DashboardStats::Get().AddShaderSwitch();
+			RuntimeStats::Get().AddShaderSwitch();
 		}
 		glUseProgram(m_RendererID);
 	}

@@ -24,6 +24,10 @@ namespace Ehu {
 			m_DepthAttachmentID = 0;
 		}
 
+		if (m_Spec.ColorAttachmentFormats.size() != m_Spec.NumColorAttachments) {
+			m_Spec.ColorAttachmentFormats.assign(m_Spec.NumColorAttachments, FramebufferTextureFormat::RGBA8);
+		}
+
 		glGenFramebuffers(1, &m_RendererID);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 
@@ -31,9 +35,16 @@ namespace Ehu {
 		for (size_t i = 0; i < m_ColorAttachmentIDs.size(); ++i) {
 			glGenTextures(1, &m_ColorAttachmentIDs[i]);
 			glBindTexture(GL_TEXTURE_2D, m_ColorAttachmentIDs[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Spec.Width, m_Spec.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			const FramebufferTextureFormat fmt = m_Spec.ColorAttachmentFormats[i];
+			if (fmt == FramebufferTextureFormat::RED_INTEGER_R32UI) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, m_Spec.Width, m_Spec.Height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			} else {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Spec.Width, m_Spec.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			}
 			glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + i), GL_TEXTURE_2D, m_ColorAttachmentIDs[i], 0);
 		}
 
@@ -72,6 +83,33 @@ namespace Ehu {
 	uint32_t OpenGLFramebuffer::GetColorAttachmentRendererID(uint32_t index) const {
 		if (index >= m_ColorAttachmentIDs.size()) return 0;
 		return m_ColorAttachmentIDs[index];
+	}
+
+	void OpenGLFramebuffer::ClearColorAttachmentRGBA(uint32_t attachmentIndex, float r, float g, float b, float a) {
+		if (attachmentIndex >= m_ColorAttachmentIDs.size())
+			return;
+		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
+		const GLfloat c[4] = { r, g, b, a };
+		glClearBufferfv(GL_COLOR, static_cast<GLint>(attachmentIndex), c);
+	}
+
+	void OpenGLFramebuffer::ClearColorAttachmentUInt(uint32_t attachmentIndex, uint32_t value) {
+		if (attachmentIndex >= m_ColorAttachmentIDs.size())
+			return;
+		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
+		GLuint v = value;
+		glClearBufferuiv(GL_COLOR, static_cast<GLint>(attachmentIndex), &v);
+	}
+
+	uint32_t OpenGLFramebuffer::ReadPixelUInt(uint32_t attachmentIndex, uint32_t x, uint32_t y) {
+		if (attachmentIndex >= m_ColorAttachmentIDs.size())
+			return 0;
+		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex);
+		GLuint pixel = 0;
+		glReadPixels(static_cast<GLint>(x), static_cast<GLint>(y), 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pixel);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return pixel;
 	}
 
 } // namespace Ehu

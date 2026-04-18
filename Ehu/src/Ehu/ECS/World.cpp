@@ -23,9 +23,12 @@ namespace Ehu {
 
 	void World::DestroyEntity(Entity e) {
 		if (!IsValid(e)) return;
+		// 移除组件
 		for (auto& kv : m_Pools)
 			kv.second->Remove(e);
+		// 生成代数加1
 		m_Generations[e.id]++;
+		// 添加到空闲实体列表
 		m_FreeList.push_back(e.id);
 		auto it = std::find(m_LiveEntities.begin(), m_LiveEntities.end(), e);
 		if (it != m_LiveEntities.end()) {

@@ -2,8 +2,8 @@ file(GLOB SRC_EHU_IMGUI_CPP "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB SRC_EHU_IMGUI_H   "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 set(SRC_EHU_IMGUI ${SRC_EHU_IMGUI_CPP} ${SRC_EHU_IMGUI_H})
 
-target_sources(EhuLib PRIVATE ${SRC_EHU_IMGUI})
-target_include_directories(EhuLib
+target_sources(EhuImGuiLib PRIVATE ${SRC_EHU_IMGUI})
+target_include_directories(EhuImGuiLib
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )

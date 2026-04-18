@@ -102,4 +102,46 @@ namespace Ehu {
 #endif
 	}
 
+	bool FileDialog::SaveFile(const std::string& title, const std::string& filterName, const std::string& filterSpec, std::string& outPath) {
+#if defined(_WIN32) || defined(EHU_PLATFORM_WINDOWS)
+		CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		IFileDialog* pfd = nullptr;
+		HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+		if (FAILED(hr) || !pfd)
+			return false;
+
+		std::wstring wTitle = Utf8ToWide(title);
+		if (!wTitle.empty())
+			pfd->SetTitle(wTitle.c_str());
+
+		std::wstring wName = Utf8ToWide(filterName);
+		std::wstring wSpec = Utf8ToWide(filterSpec);
+		COMDLG_FILTERSPEC spec = { wName.c_str(), wSpec.c_str() };
+		pfd->SetFileTypes(1, &spec);
+
+		hr = pfd->Show(nullptr);
+		bool ok = false;
+		if (SUCCEEDED(hr)) {
+			IShellItem* psi = nullptr;
+			if (SUCCEEDED(pfd->GetResult(&psi)) && psi) {
+				PWSTR pszPath = nullptr;
+				if (SUCCEEDED(psi->GetDisplayName(SIGDN_FILESYSPATH, &pszPath)) && pszPath) {
+					outPath = WideToUtf8(pszPath);
+					ok = true;
+					CoTaskMemFree(pszPath);
+				}
+				psi->Release();
+			}
+		}
+		pfd->Release();
+		return ok;
+#else
+		(void)title;
+		(void)filterName;
+		(void)filterSpec;
+		(void)outPath;
+		return false;
+#endif
+	}
+
 } // namespace Ehu

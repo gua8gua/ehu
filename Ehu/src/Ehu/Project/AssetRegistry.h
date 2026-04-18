@@ -2,6 +2,7 @@
 
 #include "Core/Core.h"
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace Ehu {
@@ -14,12 +15,17 @@ namespace Ehu {
 		Texture,
 		Scene,
 		Script,
+		Font,
 		Folder,
 	};
 
+	using AssetHandle = uint64_t;
+
 	/// 资产条目：相对路径 + 类型
 	struct EHU_API AssetEntry {
+		AssetHandle Handle = 0;
 		std::string RelativePath;
+		std::string FileSystemPath;
 		AssetType Type = AssetType::Unknown;
 		bool IsDirectory = false;
 	};
@@ -32,14 +38,21 @@ namespace Ehu {
 
 		/// 当前缓存的条目（Refresh 后有效）
 		const std::vector<AssetEntry>& GetEntries() const { return m_Entries; }
+		const AssetEntry* GetEntry(AssetHandle handle) const;
+		const AssetEntry* GetEntry(const std::string& relativePath) const;
+		bool Contains(AssetHandle handle) const;
+		AssetHandle GetHandle(const std::string& relativePath) const;
 
 		/// 根据扩展名推断资产类型
 		static AssetType GetTypeFromExtension(const std::string& extension);
 
 	private:
+		static AssetHandle HashPath(const std::string& relativePath);
 		void CollectRecursive(const std::string& assetRootAbs, const std::string& relativePrefix);
 
 		std::vector<AssetEntry> m_Entries;
+		std::unordered_map<AssetHandle, size_t> m_EntryIndexByHandle;
+		std::unordered_map<std::string, AssetHandle> m_HandleByPath;
 	};
 
 } // namespace Ehu

@@ -2,55 +2,66 @@
 #include "Application.h"
 #include "Log.h"
 #include "Ref.h"
-#include "FileSystem.h"
-#include "Platform/Backend/GraphicsBackend.h"
+#include "RuntimeStats.h"
 #include "Platform/IO/Input.h"
 #include "Platform/Render/RenderContext.h"
 #include "Platform/Render/RendererAPI.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RenderQueue.h"
 #include "Renderer/Drawable.h"
-#include "Renderer/Renderer2D.h"
-#include "Renderer/Renderer3D.h"
 #include "Events/ApplicationEvent.h"
-#include "ImGui/DebugLayer.h"
-#include "ImGui/DashboardLayer.h"
-#include "ImGui/DashboardStats.h"
+#include "Scripting/ScriptEngine.h"
+#include "Scripting/IScriptRuntime.h"
 #include "Core/Timer.h"
 #include "Platform/MemoryStats.h"
 #include "Scene/Scene.h"
 #include "Scene/SceneSerializer.h"
 #include "Project/Project.h"
+#include "ECS/LayerRegistry.h"
 #include <chrono>
 #include <algorithm>
-#include <sstream>
+#include <filesystem>
 
 namespace Ehu {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application() {
+	namespace {
+		std::string ResolveProjectRelativePath(const Project& project, const std::string& path) {
+			if (path.empty())
+				return {};
+			std::filesystem::path p(path);
+			if (p.is_absolute())
+				return p.lexically_normal().string();
+			std::filesystem::path root(project.GetProjectDirectory());
+			return (root / p).lexically_normal().string();
+		}
+	}
+
+	Application::Application(const ApplicationSpecification& specification)
+		: m_Specification(specification) {
 		EHU_ASSERT(s_Instance == nullptr, "Application already exists");
 		s_Instance = this;
-		m_Window = Scope<Window>(Window::Create());
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_window\",\"message\":\"Window::Create done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
+		m_MainWindowSceneRenderingEnabled = m_Specification.EnableMainWindowSceneRendering;
+
+		if (!m_Specification.WorkingDirectory.empty()) {
+			std::error_code ec;
+			std::filesystem::current_path(m_Specification.WorkingDirectory, ec);
+		}
+
+		// 窗口和渲染
+		WindowProps props(m_Specification.Name.empty() ? "Ehu Application" : m_Specification.Name);
+		m_Window = Scope<Window>(Window::Create(props));
 		m_Window->SetEventCallback(EHU_BIND_EVENT_FN(Application::OnEvent));
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_set_callback\",\"message\":\"SetEventCallback done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		Input::Init();
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_input_init\",\"message\":\"Input::Init done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		RenderContext::Init();
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_render_context_init\",\"message\":\"RenderContext::Init done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		RenderContext::SetCurrentWindow(m_Window.get());
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_set_current_window\",\"message\":\"SetCurrentWindow done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		Renderer::Init();
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_renderer_init\",\"message\":\"Renderer::Init done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
+		// 脚本引擎初始化。实际程序集在项目加载后再配置。
+		ScriptEngine::Init("");
+		Scene::SetScriptRuntime(ScriptEngine::GetRuntimeBridge());
 		m_RenderQueue = CreateScope<RenderQueue>();
 
-		m_ImGuiLayer = new ImGuiLayer(GetGraphicsBackend());
-		PushOverlay(m_ImGuiLayer);
-		PushOverlay(new DebugLayer());
-		PushOverlay(new DashboardLayer());
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:post_push_overlay\",\"message\":\"PushOverlay done\",\"data\":{\"ok\":1},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"C\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 	}
 
 	Application::~Application() {
@@ -58,6 +69,8 @@ namespace Ehu {
 		m_Scenes.clear();
 		m_ActivatedScenesCache.clear();
 		m_RenderQueue.reset();
+		Scene::SetScriptRuntime(nullptr);
+		ScriptEngine::Shutdown();
 		Input::Shutdown();
 		Renderer::Shutdown();
 		RenderContext::Shutdown();
@@ -70,6 +83,8 @@ namespace Ehu {
 			it->second = activated;
 			return;
 		}
+		if (m_Window)
+			scene->OnViewportResize(m_Window->GetWidth(), m_Window->GetHeight());
 		m_Scenes.emplace_back(scene, activated);
 	}
 
@@ -87,6 +102,54 @@ namespace Ehu {
 		m_ActivatedScenesCache.clear();
 	}
 
+	bool Application::IsSceneActivated(Scene* scene) const {
+		if (!scene)
+			return false;
+		auto it = std::find_if(m_Scenes.begin(), m_Scenes.end(), [scene](const std::pair<Ref<Scene>, bool>& p) { return p.first.get() == scene; });
+		return it != m_Scenes.end() && it->second;
+	}
+
+	Ref<Scene> Application::FindSceneRef(Scene* scene) const {
+		if (!scene)
+			return nullptr;
+		auto it = std::find_if(m_Scenes.begin(), m_Scenes.end(), [scene](const std::pair<Ref<Scene>, bool>& p) { return p.first.get() == scene; });
+		return it != m_Scenes.end() ? it->first : nullptr;
+	}
+
+	void Application::ConfigureProject(Project& project) {
+		const ProjectConfig& cfg = project.GetConfig();
+		LayerRegistry::ResetToBuiltins();
+		for (const RenderChannelConfigEntry& entry : cfg.RenderChannels) {
+			if (!entry.Name.empty())
+				LayerRegistry::RegisterRenderChannelWithId(entry.Name, entry.Id);
+		}
+		for (const CollisionLayerConfigEntry& entry : cfg.CollisionLayers) {
+			if (entry.Name.empty() || entry.Bit == 0u)
+				continue;
+			uint32_t defaultMask = 0xFFFFFFFFu;
+			auto maskIt = cfg.CollisionDefaultMasks.find(entry.Bit);
+			if (maskIt != cfg.CollisionDefaultMasks.end())
+				defaultMask = maskIt->second;
+			LayerRegistry::RegisterCollisionLayerWithBit(entry.Name, entry.Bit, defaultMask);
+		}
+
+		const std::string coreAssembly = ResolveProjectRelativePath(project, cfg.ScriptCoreAssemblyPath);
+		const std::string appAssembly = ResolveProjectRelativePath(project, cfg.ScriptAppAssemblyPath);
+		ScriptEngine::ConfigureAssemblies(coreAssembly, appAssembly);
+	}
+
+	Ref<Scene> Application::LoadSceneFromProject(Project& project, const std::string& relativePath, bool activated) {
+		if (relativePath.empty())
+			return nullptr;
+		SceneSerializer serializer;
+		const std::string scenePath = project.GetAssetFileSystemPath(relativePath);
+		Ref<Scene> scene = CreateRef<Scene>();
+		if (!serializer.Deserialize(scene.get(), scenePath))
+			return nullptr;
+		RegisterScene(scene, activated);
+		return scene;
+	}
+
 	const std::vector<Scene*>& Application::GetActivatedScenes() const {
 		m_ActivatedScenesCache.clear();
 		for (const auto& p : m_Scenes)
@@ -97,16 +160,12 @@ namespace Ehu {
 
 	uint32_t Application::ActivateScenesFromProject(Project& project) {
 		const ProjectConfig& cfg = project.GetConfig();
-		SceneSerializer serializer;
+		ConfigureProject(project);
 		uint32_t loaded = 0;
 		for (const ProjectSceneEntry& entry : cfg.Scenes) {
 			if (!entry.Active) continue;
-			const std::string scenePath = project.GetAssetFileSystemPath(entry.RelativePath);
-			Ref<Scene> scene = CreateRef<Scene>();
-			if (!serializer.Deserialize(scene.get(), scenePath))
-				continue;
-			RegisterScene(scene, true);
-			loaded++;
+			if (LoadSceneFromProject(project, entry.RelativePath, true))
+				loaded++;
 		}
 		return loaded;
 	}
@@ -114,57 +173,121 @@ namespace Ehu {
 	void Application::DeactivateAllScenes() {
 		m_Scenes.clear();
 		m_ActivatedScenesCache.clear();
+		LayerRegistry::ResetToBuiltins();
+		ScriptEngine::LoadAppAssembly("");
+	}
+
+	void Application::SetPlayMode(bool play) {
+		if (m_PlayMode == play)
+			return;
+		for (Scene* scene : GetActivatedScenes()) {
+			if (!scene)
+				continue;
+			if (play)
+				scene->OnRuntimeStart();
+			else
+				scene->OnRuntimeStop();
+		}
+		m_PlayMode = play;
+		if (!play)
+			m_FixedAccumulator = 0.0f;
+		if (IScriptRuntime* runtime = ScriptEngine::GetRuntimeBridge())
+			runtime->OnPlayModeChanged(play);
+	}
+
+	void Application::Close() {
+		m_Running = false;
+	}
+
+	void Application::SubmitToMainThread(const std::function<void()>& function) {
+		if (!function)
+			return;
+		std::scoped_lock lock(m_MainThreadQueueMutex);
+		m_MainThreadQueue.push_back(function);
+	}
+
+	void Application::ExecuteMainThreadQueue() {
+		std::vector<std::function<void()>> queue;
+		{
+			std::scoped_lock lock(m_MainThreadQueueMutex);
+			queue.swap(m_MainThreadQueue);
+		}
+		for (const auto& fn : queue)
+			fn();
 	}
 
 	void Application::Run() {
 		using namespace std::chrono;
 		auto runStart = steady_clock::now();
-		static int s_frame = 0;
 
 		while (m_Running) {
-			if (s_frame == 0) { std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"Application.cpp:run_loop\",\"message\":\"first frame start\",\"data\":{\"frame\":0},\"timestamp\":" + std::to_string(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"E\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 			float timeSec = duration_cast<duration<float>>(steady_clock::now() - runStart).count();
 			m_TimeStep.Update(timeSec);
 
-			DashboardStats& dashStats = DashboardStats::Get();
+			RuntimeStats& dashStats = RuntimeStats::Get();
 			dashStats.SnapshotRenderingCounters();  // 上一帧的纹理/着色器计数写入展示并清零
 			dashStats.GpuTimeMs = RenderContext::GetAPI().GetLastGpuTimeMs();
+			dashStats.ScriptingMs = 0.0f;
+			ExecuteMainThreadQueue();
 
-			RenderContext::GetAPI().SetViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
-			RenderContext::GetAPI().BeginRenderPass(nullptr); // 绑定默认帧缓冲，保证 Clear 与 3D/2D 绘制到窗口
-			RenderContext::GetAPI().SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-			RenderContext::GetAPI().Clear(RendererAPI::ClearColor | RendererAPI::ClearDepth);
+			if (m_Minimized) {
+				m_Window->OnUpdate();
+				continue;
+			}
+
+			RendererAPI& api = RenderContext::GetAPI();
+			api.SetViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
+			api.BeginRenderPass(nullptr); // 绑定默认帧缓冲，保证 Clear 与后续 ImGui 绘制到窗口
+			api.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+			api.Clear(RendererAPI::ClearColor | RendererAPI::ClearDepth);
 
 			Timer updateTimer;
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(m_TimeStep);
 			dashStats.UpdateMs = updateTimer.ElapsedMs();
 
-			m_RenderQueue->Clear();
-			uint32_t layerIndex = 0;
-			Timer submitTimer;
-			for (Layer* layer : m_LayerStack) {
-				if (IDrawable* d = dynamic_cast<IDrawable*>(layer)) {
-					m_RenderQueue->SetCurrentLayerIndex(layerIndex);
-					d->SubmitTo(*m_RenderQueue);
+			if (m_PlayMode) {
+				m_FixedAccumulator += m_TimeStep.GetDeltaTime();
+				const int maxCatchUpSteps = 5;
+				int fixedSteps = 0;
+				while (m_FixedAccumulator >= m_FixedDeltaTime && fixedSteps < maxCatchUpSteps) {
+					const std::vector<Scene*>& scenes = GetActivatedScenes();
+					for (Scene* scene : scenes)
+						scene->OnFixedUpdate(m_FixedDeltaTime);
+					m_FixedAccumulator -= m_FixedDeltaTime;
+					fixedSteps++;
 				}
-				layerIndex++;
+			}
+
+			m_RenderQueue->Clear();
+			Timer submitTimer;
+			if (m_MainWindowSceneRenderingEnabled) {
+				uint32_t layerIndex = 0;
+				for (Layer* layer : m_LayerStack) {
+					if (IDrawable* d = dynamic_cast<IDrawable*>(layer)) {
+						m_RenderQueue->SetCurrentLayerIndex(layerIndex);
+						d->SubmitTo(*m_RenderQueue);
+					}
+					layerIndex++;
+				}
 			}
 			m_RenderQueue->Sort();
-			dashStats.RenderSubmitMs = submitTimer.ElapsedMs();
+			dashStats.RenderSubmitMs = m_MainWindowSceneRenderingEnabled ? submitTimer.ElapsedMs() : 0.0f;
 
-			RenderContext::GetAPI().SetDepthTest(true);
-			RenderContext::GetAPI().SetCullFace(false, true);
-			RenderContext::GetAPI().BeginGpuTiming();
+			if (m_MainWindowSceneRenderingEnabled) {
+				api.SetDepthTest(true);
+				api.SetCullFace(false, true);
+				api.BeginGpuTiming();
+			}
 			m_RenderQueue->FlushAll();
-			RenderContext::GetAPI().EndGpuTiming();
+			if (m_MainWindowSceneRenderingEnabled)
+				api.EndGpuTiming();
 
 			// 写入仪表盘：Timing、来自 RenderQueue 的渲染统计、Active Entities
-			float dtMs = m_TimeStep.GetSeconds() * 1000.0f;
+			float dtMs = m_TimeStep.GetDeltaTime() * 1000.0f;
 			dashStats.FrameTimeMs = dtMs;
 			dashStats.CpuTimeMs = dtMs;
 			dashStats.PhysicsMs = 0.0f;
-			dashStats.ScriptingMs = 0.0f;
 
 			const RenderQueue* queue = GetRenderQueue();
 			if (queue) {
@@ -187,13 +310,14 @@ namespace Ehu {
 
 			dashStats.PushHistory();
 
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack)
-				layer->OnImGuiRender();
-			m_ImGuiLayer->End();
+			if (m_ImGuiLayer && m_BeginImGuiFrame && m_EndImGuiFrame) {
+				m_BeginImGuiFrame(m_ImGuiLayer);
+				for (Layer* layer : m_LayerStack)
+					layer->OnImGuiRender();
+				m_EndImGuiFrame(m_ImGuiLayer);
+			}
 
 			m_Window->OnUpdate();
-			if (s_frame == 0) s_frame++;
 		}
 	}
 
@@ -209,12 +333,19 @@ namespace Ehu {
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
-		m_Running = false;
+		Close();
 		return true;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& e) {
+		m_Minimized = (e.GetWidth() == 0 || e.GetHeight() == 0);
+		if (m_Minimized)
+			return false;
 		RenderContext::GetAPI().SetViewport(0, 0, e.GetWidth(), e.GetHeight());
+		for (Scene* scene : GetActivatedScenes()) {
+			if (scene)
+				scene->OnViewportResize(e.GetWidth(), e.GetHeight());
+		}
 		return false;
 	}
 

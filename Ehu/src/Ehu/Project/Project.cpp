@@ -5,11 +5,13 @@
 #include "Scene/Scene.h"
 #include "Scene/SceneSerializer.h"
 #include "ECS/Components.h"
+#include "ECS/LayerRegistry.h"
 #include "Renderer/Camera/Camera.h"  // Scene 内部持有 Camera unique_ptr，需完整类型
 #include <sstream>
 #include <algorithm>
 #include <filesystem>
 #include <cctype>
+#include <unordered_set>
 
 namespace Ehu {
 
@@ -29,6 +31,20 @@ namespace Ehu {
 		return FileSystem::CreateDirectory(path);
 	}
 
+	static void SyncLayerConfigFromRegistry(ProjectConfig& cfg) {
+		cfg.RenderChannels.clear();
+		for (const auto& [id, name] : LayerRegistry::GetRenderChannels())
+			cfg.RenderChannels.push_back({ name, id });
+
+		cfg.CollisionLayers.clear();
+		for (const auto& [bit, name] : LayerRegistry::GetCollisionLayers())
+			cfg.CollisionLayers.push_back({ name, bit });
+
+		cfg.CollisionDefaultMasks.clear();
+		for (const auto& [bit, mask] : LayerRegistry::GetCollisionDefaultMasks())
+			cfg.CollisionDefaultMasks[bit] = mask;
+	}
+
 	Ref<Project> Project::CreateInternal(const std::string& projectFilePath, const ProjectConfig& config) {
 		Ref<Project> proj = CreateRef<Project>();
 		proj->m_ProjectFilePath = projectFilePath;
@@ -46,6 +62,12 @@ namespace Ehu {
 		cfg.Name = name;
 		cfg.ProjectDirectory = dir;
 		cfg.AssetDirectory = "Assets";
+		cfg.CacheDirectory = "Cache";
+		cfg.AssetRegistryPath = "AssetRegistry.ehuassets";
+		cfg.ScriptModuleDirectory = "Scripts";
+		cfg.ScriptCoreAssemblyPath = "Scripts/Ehu-ScriptCore.dll";
+		cfg.ScriptAppAssemblyPath = "Scripts/Game.dll";
+		SyncLayerConfigFromRegistry(cfg);
 
 		std::string projectFile = FileSystem::Join(dir, name + ".ehuproject");
 		ProjectSerializer serializer;
@@ -56,6 +78,14 @@ namespace Ehu {
 		// 默认模板：创建 Assets、Assets/Scenes 及默认场景 Main.ehuscene
 		std::string assetDir = proj->GetAssetDirectory();
 		if (!EnsureDirectoryExists(assetDir)) {
+			Project::CloseActive();
+			return nullptr;
+		}
+		if (!EnsureDirectoryExists(proj->GetCacheDirectory())) {
+			Project::CloseActive();
+			return nullptr;
+		}
+		if (!EnsureDirectoryExists(proj->ResolvePath(cfg.ScriptModuleDirectory.empty() ? "Scripts" : cfg.ScriptModuleDirectory))) {
 			Project::CloseActive();
 			return nullptr;
 		}
@@ -101,6 +131,7 @@ namespace Ehu {
 	bool Project::SaveActive() {
 		if (!s_ActiveProject)
 			return false;
+		SyncLayerConfigFromRegistry(s_ActiveProject->m_Config);
 		ProjectSerializer serializer;
 		return serializer.Serialize(s_ActiveProject->m_Config, s_ActiveProject->m_ProjectFilePath);
 	}
@@ -158,6 +189,26 @@ namespace Ehu {
 				out << p << '\n';
 			FileSystem::WriteTextFile(GetRecentFilePath(), out.str());
 		}
+	} // namespace
+
+	bool Project::IsValidProjectFilePath(const std::string& projectFilePath) {
+		if (projectFilePath.empty() || !FileSystem::IsFile(projectFilePath))
+			return false;
+		ProjectConfig cfg;
+		ProjectSerializer serializer;
+		return serializer.Deserialize(cfg, projectFilePath);
+	}
+
+	void Project::RemoveFromRecent(const std::string& projectFilePath) {
+		const std::string key = NormalizeRecentProjectPath(projectFilePath);
+		if (key.empty())
+			return;
+		std::vector<std::string> list;
+		LoadRecent(list);
+		list.erase(std::remove_if(list.begin(), list.end(), [&](const std::string& s) {
+			return NormalizeRecentProjectPath(s) == key;
+		}), list.end());
+		SaveRecent(list);
 	}
 
 	void Project::AddToRecent(const std::string& projectFilePath) {
@@ -177,9 +228,30 @@ namespace Ehu {
 	}
 
 	std::vector<std::string> Project::GetRecentProjects() {
-		std::vector<std::string> list;
-		LoadRecent(list);
-		return list;
+		std::vector<std::string> raw;
+		LoadRecent(raw);
+		std::unordered_set<std::string> seenKeys;
+		std::vector<std::string> deduped;
+		deduped.reserve(raw.size());
+		for (const std::string& line : raw) {
+			const std::string n = NormalizeRecentProjectPath(line);
+			if (n.empty())
+				continue;
+			if (seenKeys.count(n))
+				continue;
+			seenKeys.insert(n);
+			deduped.push_back(n);
+		}
+		std::vector<std::string> valid;
+		valid.reserve(deduped.size());
+		for (const std::string& p : deduped) {
+			if (IsValidProjectFilePath(p))
+				valid.push_back(p);
+		}
+		const bool dirty = (deduped.size() != raw.size()) || (valid.size() != deduped.size());
+		if (dirty)
+			SaveRecent(valid);
+		return valid;
 	}
 
 	std::string Project::GetProjectDirectory() const {
@@ -189,8 +261,24 @@ namespace Ehu {
 	}
 
 	std::string Project::GetAssetDirectory() const {
-		const std::string root = GetProjectDirectory();
-		return FileSystem::Join(root, m_Config.AssetDirectory.empty() ? "Assets" : m_Config.AssetDirectory);
+		return ResolvePath(m_Config.AssetDirectory.empty() ? "Assets" : m_Config.AssetDirectory);
+	}
+
+	std::string Project::GetCacheDirectory() const {
+		return ResolvePath(m_Config.CacheDirectory.empty() ? "Cache" : m_Config.CacheDirectory);
+	}
+
+	std::string Project::GetAssetRegistryFilePath() const {
+		return ResolvePath(m_Config.AssetRegistryPath.empty() ? "AssetRegistry.ehuassets" : m_Config.AssetRegistryPath);
+	}
+
+	std::string Project::ResolvePath(const std::string& projectRelativePath) const {
+		if (projectRelativePath.empty())
+			return GetProjectDirectory();
+		std::filesystem::path path(projectRelativePath);
+		if (path.is_absolute())
+			return path.lexically_normal().string();
+		return FileSystem::Join(GetProjectDirectory(), projectRelativePath);
 	}
 
 	std::string Project::GetAssetFileSystemPath(const std::string& assetRelativePath) const {

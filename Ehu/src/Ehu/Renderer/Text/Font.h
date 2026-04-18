@@ -16,6 +16,7 @@ namespace Ehu {
 			glm::vec2 uvMin = { 0.0f, 0.0f };
 			glm::vec2 uvMax = { 1.0f, 1.0f };
 			glm::vec2 size = { 0.0f, 0.0f };  // 绘制尺寸（世界/像素）
+			glm::vec2 bearing = { 0.0f, 0.0f };
 			float advance = 0.0f;             // 水平步进
 		};
 

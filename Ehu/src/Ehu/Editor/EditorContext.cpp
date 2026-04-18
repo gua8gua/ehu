@@ -18,6 +18,20 @@ namespace Ehu {
 		m_SelectedEntity = { 0, 0 };
 	}
 
+	void EditorContext::SetActiveScene(Scene* scene, const std::string& relativePath) {
+		m_ActiveScene = scene;
+		m_ActiveScenePath = relativePath;
+		if (m_SelectedScene && m_SelectedScene != m_ActiveScene)
+			ClearSelectedEntity();
+	}
+
+	void EditorContext::ClearActiveScene() {
+		m_ActiveScene = nullptr;
+		m_ActiveScenePath.clear();
+		if (m_SelectedScene)
+			ClearSelectedEntity();
+	}
+
 	void EditorContext::SetSelectedAsset(const std::string& relativePath) {
 		m_SelectedAsset = relativePath;
 	}
@@ -27,6 +41,7 @@ namespace Ehu {
 	}
 
 	void EditorContext::ClearAll() {
+		ClearActiveScene();
 		ClearSelectedEntity();
 		ClearSelectedAsset();
 	}

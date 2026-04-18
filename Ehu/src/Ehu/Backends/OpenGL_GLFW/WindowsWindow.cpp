@@ -3,11 +3,8 @@
 #include "Events/MouseEvent.h"
 #include "Events/ApplicationEvent.h"
 #include "Core/Log.h"
-#include "Core/FileSystem.h"
 #include <GLFW/glfw3.h>
 #include <cstdlib>
-#include <chrono>
-#include <string>
 
 namespace Ehu {
 
@@ -25,12 +22,9 @@ namespace Ehu {
 	}
 
 	void WindowsWindow::Init(const WindowProps& props) {
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:Init_start\",\"message\":\"Init entry\",\"data\":{\"step\":0},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"A\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		m_Data.Title = props.title;
 		m_Data.Width = props.width;
 		m_Data.Height = props.height;
-
-		EHU_CORE_INFO("Creating window {0} ({1}, {2})", props.title, props.width, props.height);
 
 		if (!s_GLFWInitialized) {
 			int success = glfwInit();
@@ -46,7 +40,6 @@ namespace Ehu {
 		glfwWindowHint(GLFW_DEPTH_BITS, 24);
 
 		m_Window = glfwCreateWindow((int)props.width, (int)props.height, m_Data.Title.c_str(), nullptr, nullptr);
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:post_create\",\"message\":\"glfwCreateWindow\",\"data\":{\"window_ok\":" + std::to_string(m_Window ? 1 : 0) + "},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"A\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		if (!m_Window) {
 			const char* errDesc = nullptr;
 			(void)glfwGetError(&errDesc);
@@ -56,7 +49,6 @@ namespace Ehu {
 		}
 		glfwMakeContextCurrent(m_Window);
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-		{ std::string _line = "{\"sessionId\":\"8e1d5b\",\"location\":\"WindowsWindow.cpp:post_glad\",\"message\":\"gladLoadGLLoader\",\"data\":{\"status\":" + std::to_string(status) + "},\"timestamp\":" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) + ",\"hypothesisId\":\"B\"}\n"; FileSystem::AppendTextFile("debug-8e1d5b.log", _line); }
 		if (!status) {
 			EHU_CORE_ERROR("gladLoadGLLoader failed");
 			EHU_CORE_ASSERT(false, "Failed to initialize GLAD");

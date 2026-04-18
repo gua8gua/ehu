@@ -1,6 +1,14 @@
 #include "ehupch.h"
 #include "Font.h"
+#include "Core/FileSystem.h"
+#include "Core/Log.h"
 #include "Platform/Render/Resources/Texture2D.h"
+#include <fstream>
+#include <vector>
+
+#define STBTT_STATIC
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <imstb_truetype.h>
 
 namespace Ehu {
 
@@ -53,9 +61,69 @@ namespace Ehu {
 	}
 
 	Font* Font::CreateFromFile(const std::string& path, float pixelHeight) {
-		(void)path;
-		(void)pixelHeight;
-		return nullptr; // 后续可接 stb_truetype
+		std::ifstream input(path, std::ios::binary | std::ios::ate);
+		if (!input) {
+			EHU_CORE_WARN("[Font] Failed to open '{}', falling back to placeholder font", path);
+			return CreatePlaceholder(pixelHeight);
+		}
+
+		const std::streamsize size = input.tellg();
+		if (size <= 0) {
+			EHU_CORE_WARN("[Font] Empty font file '{}', falling back to placeholder font", path);
+			return CreatePlaceholder(pixelHeight);
+		}
+
+		input.seekg(0, std::ios::beg);
+		std::vector<unsigned char> ttfData(static_cast<size_t>(size));
+		if (!input.read(reinterpret_cast<char*>(ttfData.data()), size)) {
+			EHU_CORE_WARN("[Font] Failed to read '{}', falling back to placeholder font", path);
+			return CreatePlaceholder(pixelHeight);
+		}
+
+		const int atlasWidth = 512;
+		const int atlasHeight = 512;
+		std::vector<unsigned char> bitmap(static_cast<size_t>(atlasWidth * atlasHeight), 0);
+		stbtt_bakedchar bakedChars[95] = {};
+		const int bakeResult = stbtt_BakeFontBitmap(ttfData.data(), 0, pixelHeight, bitmap.data(), atlasWidth, atlasHeight, 32, 95, bakedChars);
+		if (bakeResult <= 0) {
+			EHU_CORE_WARN("[Font] Failed to bake '{}', falling back to placeholder font", path);
+			return CreatePlaceholder(pixelHeight);
+		}
+
+		std::vector<uint8_t> rgba(static_cast<size_t>(atlasWidth * atlasHeight * 4), 255);
+		for (int y = 0; y < atlasHeight; ++y) {
+			for (int x = 0; x < atlasWidth; ++x) {
+				const size_t pixelIndex = static_cast<size_t>(y * atlasWidth + x);
+				const uint8_t alpha = bitmap[pixelIndex];
+				rgba[pixelIndex * 4 + 0] = 255;
+				rgba[pixelIndex * 4 + 1] = 255;
+				rgba[pixelIndex * 4 + 2] = 255;
+				rgba[pixelIndex * 4 + 3] = alpha;
+			}
+		}
+
+		Font* font = new Font();
+		font->m_PixelHeight = pixelHeight;
+		font->m_Atlas = Texture2D::Create(atlasWidth, atlasHeight, rgba.data());
+		if (!font->m_Atlas) {
+			delete font;
+			EHU_CORE_WARN("[Font] Failed to create atlas texture for '{}', falling back to placeholder font", path);
+			return CreatePlaceholder(pixelHeight);
+		}
+
+		for (int index = 0; index < 95; ++index) {
+			const int codepoint = 32 + index;
+			const stbtt_bakedchar& glyph = bakedChars[index];
+			GlyphInfo info;
+			info.uvMin = { glyph.x0 / static_cast<float>(atlasWidth), glyph.y0 / static_cast<float>(atlasHeight) };
+			info.uvMax = { glyph.x1 / static_cast<float>(atlasWidth), glyph.y1 / static_cast<float>(atlasHeight) };
+			info.size = { static_cast<float>(glyph.x1 - glyph.x0), static_cast<float>(glyph.y1 - glyph.y0) };
+			info.bearing = { glyph.xoff, glyph.yoff };
+			info.advance = glyph.xadvance;
+			font->m_Glyphs[codepoint] = info;
+		}
+
+		return font;
 	}
 
 } // namespace Ehu

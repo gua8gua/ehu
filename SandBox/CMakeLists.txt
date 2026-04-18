@@ -23,9 +23,13 @@ target_link_libraries(SandBox PRIVATE EhuLib)
 
 # Windows设置
 if(WIN32)
-    set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     add_definitions(-DEHU_PLATFORM_WINDOWS -DEHU_BUILD_DLL)
+    set_target_properties(SandBox PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+    )
 
     # 区分 MSVC 与 MinGW / Clang
     if (MSVC)

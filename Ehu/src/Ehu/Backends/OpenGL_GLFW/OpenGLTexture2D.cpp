@@ -1,7 +1,7 @@
 #include "ehupch.h"
 #include "OpenGLTexture2D.h"
 #include "Core/Log.h"
-#include "ImGui/DashboardStats.h"
+#include "Core/RuntimeStats.h"
 #include <glad/glad.h>
 #ifdef EHU_USE_STB_IMAGE
 	#define STB_IMAGE_IMPLEMENTATION
@@ -63,7 +63,7 @@ namespace Ehu {
 
 	void OpenGLTexture2D::Bind(uint32_t slot) const {
 		if (m_RendererID == 0) return;
-		DashboardStats::Get().AddTextureBinding();
+		RuntimeStats::Get().AddTextureBinding();
 		glActiveTexture(GL_TEXTURE0 + slot);
 		glBindTexture(GL_TEXTURE_2D, m_RendererID);
 	}
